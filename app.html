@@ -14,10 +14,9 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="./og-image.svg">
 
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,
-<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>
-<rect width='32' height='32' rx='6' fill='%23ffffff' stroke='%23e5e7eb' stroke-width='1'/>
-<text x='16' y='22' text-anchor='middle' font-size='18' font-family='sans-serif'>🍱</text></svg>">
+<!-- 8×8 pixel "お弁当箱" favicon — white on transparent -->
+<link rel="icon" type="image/svg+xml" href="./favicon.svg">
+<link rel="alternate icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'><rect x='0' y='0' width='8' height='1' fill='%23fff'/><rect x='0' y='7' width='8' height='1' fill='%23fff'/><rect x='0' y='1' width='1' height='6' fill='%23fff'/><rect x='7' y='1' width='1' height='6' fill='%23fff'/><rect x='4' y='1' width='1' height='6' fill='%23fff'/></svg>">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -332,8 +331,14 @@ tailwind.config = {
 <header class="border-b border-border bg-paper sticky top-0 z-30">
     <div class="max-w-[1400px] mx-auto px-5 sm:px-8 py-4 flex items-center justify-between gap-4">
         <div class="flex items-baseline gap-3">
-            <h1 class="text-lg sm:text-xl font-semibold tracking-wide">
-                <span class="inline-block align-middle text-[22px] mr-1.5" aria-hidden="true">🍱</span>日めくり献立
+            <h1 class="text-lg sm:text-xl font-semibold tracking-wide flex items-center gap-2">
+                <svg class="bento-mark" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"
+                     style="width:20px;height:20px;fill:#c2410c;display:inline-block;vertical-align:middle;">
+                    <rect x="0" y="0" width="8" height="1"/><rect x="0" y="7" width="8" height="1"/>
+                    <rect x="0" y="1" width="1" height="6"/><rect x="7" y="1" width="1" height="6"/>
+                    <rect x="4" y="1" width="1" height="6"/>
+                </svg>
+                <span>日めくり献立</span>
             </h1>
             <span class="hidden sm:inline text-xs text-muted tracking-wider">weekly menu · local-first</span>
         </div>
@@ -419,7 +424,15 @@ tailwind.config = {
 
         <div class="flex items-baseline justify-between gap-4">
             <div>
-                <h2 class="text-xl sm:text-2xl font-semibold tracking-wide">🍱 一週間の献立</h2>
+                <h2 class="text-xl sm:text-2xl font-semibold tracking-wide inline-flex items-center gap-2">
+                    <svg viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"
+                         style="width:22px;height:22px;fill:#c2410c;vertical-align:middle;">
+                        <rect x="0" y="0" width="8" height="1"/><rect x="0" y="7" width="8" height="1"/>
+                        <rect x="0" y="1" width="1" height="6"/><rect x="7" y="1" width="1" height="6"/>
+                        <rect x="4" y="1" width="1" height="6"/>
+                    </svg>
+                    <span>一週間の献立</span>
+                </h2>
                 <p class="text-xs text-muted mt-1">枠をタップ → 朝・昼・夜の献立を組む</p>
             </div>
             <div class="hidden sm:flex items-center gap-2 text-xs text-muted">

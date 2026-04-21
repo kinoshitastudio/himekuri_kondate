@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" shape-rendering="crispEdges">
+  <!-- 8×8 pixel bento box (お弁当箱) — white on transparent.
+       Top & bottom borders (rows 0 and 7), left & right borders,
+       and a single vertical divider at column 4 (two compartments). -->
+  <rect x="0" y="0" width="8" height="1" fill="#FFFFFF"/>
+  <rect x="0" y="7" width="8" height="1" fill="#FFFFFF"/>
+  <rect x="0" y="1" width="1" height="6" fill="#FFFFFF"/>
+  <rect x="7" y="1" width="1" height="6" fill="#FFFFFF"/>
+  <rect x="4" y="1" width="1" height="6" fill="#FFFFFF"/>
+</svg>
