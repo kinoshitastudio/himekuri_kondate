@@ -1,0 +1,2745 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日めくり献立 — アプリ</title>
+<meta name="description" content="お気に入りを中心に一週間のリズムを作る、ローカル完結型の献立アプリ。毎日「今日何にする？」を考えるストレスをゼロに。">
+
+<!-- ═══ Open Graph / Twitter ═══ -->
+<meta property="og:title" content="日めくり献立 · アプリ">
+<meta property="og:description" content="お気に入りを中心に一週間のリズムを作る、ローカル完結型の献立アプリ。">
+<meta property="og:type" content="website">
+<meta property="og:image" content="./og-image.svg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="./og-image.svg">
+
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>
+<rect width='32' height='32' rx='6' fill='%23ffffff' stroke='%23e5e7eb' stroke-width='1'/>
+<text x='16' y='22' text-anchor='middle' font-size='18' font-family='sans-serif'>🍱</text></svg>">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+    theme: {
+        extend: {
+            fontFamily: {
+                sans: ['"Noto Sans JP"', '"Inter"', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+            },
+            colors: {
+                ink:    '#37352f',    // Notion-esque warm black
+                paper:  '#ffffff',
+                muted:  '#9b9a97',
+                sub:    '#6b7280',
+                border: '#e5e7eb',
+                hover:  '#f7f6f3',
+                accent: '#c2410c',    // muted brick
+                star:   '#f59e0b',    // amber
+                lunch:  '#fef3c7',    // soft amber bg
+                dinner: '#e0e7ff',    // soft indigo bg
+            },
+            boxShadow: {
+                notion: '0 1px 2px rgba(15,15,15,0.08), 0 2px 4px rgba(15,15,15,0.04)',
+                soft:   '0 4px 20px rgba(15,15,15,0.06)',
+            }
+        }
+    }
+};
+</script>
+
+<style>
+    html, body {
+        background: #ffffff;
+        color: #37352f;
+        font-family: 'Noto Sans JP', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        font-feature-settings: "palt";
+        /* Kill iOS Safari's double-tap-to-zoom on every element.
+           `manipulation` allows scroll + pinch-zoom but blocks the double-tap gesture. */
+        touch-action: manipulation;
+    }
+    * { -webkit-tap-highlight-color: transparent; }
+    button, a, [role="button"], input, textarea, select { touch-action: manipulation; }
+
+    /* iOS Safari zooms when a focused input has font-size < 16px.
+       Force 16px on all text inputs/textareas to prevent that zoom-and-don't-come-back bug. */
+    @media (max-width: 640px) {
+        input[type="text"], input[type="number"], input[type="search"],
+        input[type="email"], textarea, select {
+            font-size: 16px !important;
+        }
+    }
+
+    /* Subtle sidebar scrollbar — Notion-esque */
+    .scroll-fine::-webkit-scrollbar { width: 6px; }
+    .scroll-fine::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+    .scroll-fine::-webkit-scrollbar-thumb:hover { background: #9b9a97; }
+    .scroll-fine::-webkit-scrollbar-track { background: transparent; }
+
+    /* Slot placeholder hover */
+    .slot-empty { transition: background 0.15s, border-color 0.15s; }
+    .slot-empty:hover { background: #f7f6f3; border-color: #9b9a97; }
+
+    /* Slot filled animation */
+    .slot-filled {
+        animation: slotIn 0.25s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    }
+    @keyframes slotIn {
+        from { opacity: 0; transform: translateY(3px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Star pulse */
+    .star-pulse { animation: starPulse 0.4s ease-out; }
+    @keyframes starPulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.35); }
+        100% { transform: scale(1); }
+    }
+
+    /* Modal fade/slide */
+    .modal-fade { animation: fadeIn 0.2s ease-out; }
+    .modal-slide { animation: slideUp 0.25s cubic-bezier(0.2, 0.7, 0.2, 1); }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(12px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Inspiration card */
+    .insp-card {
+        transition: transform 0.2s, border-color 0.2s, background 0.2s;
+    }
+    .insp-card:hover {
+        transform: translateY(-2px);
+        border-color: #c2410c;
+        background: #fff7ed;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       日めくり TODAY CARD — a calendar-page view of today's meals
+       ═══════════════════════════════════════════════════════════════ */
+    #todayCard {
+        animation: todayFlip 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+        transform-origin: top center;
+        background:
+            radial-gradient(circle at 20% -5%, rgba(254,243,199,0.4), transparent 60%),
+            radial-gradient(circle at 100% 110%, rgba(224,231,255,0.3), transparent 50%),
+            #ffffff;
+    }
+    @keyframes todayFlip {
+        0%   { opacity: 0; transform: perspective(1000px) rotateX(-22deg) translateY(-8px); }
+        100% { opacity: 1; transform: perspective(1000px) rotateX(0) translateY(0); }
+    }
+
+    .today-meals {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+    @media (min-width: 640px) {
+        .today-meals { grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    }
+    .today-meal-label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.22em;
+        color: #6b7280;
+        padding-bottom: 8px;
+        border-bottom: 1px dashed #e5e7eb;
+        margin-bottom: 12px;
+    }
+    .today-meal-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-height: 48px;
+    }
+    .today-meal-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        cursor: pointer;
+        padding: 4px 6px;
+        margin: -4px -6px;
+        border-radius: 4px;
+        transition: background 0.15s, color 0.15s;
+    }
+    .today-meal-item:hover {
+        color: #c2410c;
+        background: #fff7ed;
+    }
+    .today-meal-empty {
+        font-size: 12px;
+        color: #9b9a97;
+        font-style: italic;
+        padding: 4px 0;
+    }
+    .today-date-big {
+        font-family: 'Georgia', 'Noto Serif JP', serif;
+        font-weight: 700;
+        line-height: 0.9;
+        color: #c2410c;
+    }
+
+    /* Today highlight */
+    .today-marker {
+        position: relative;
+    }
+    .today-marker::before {
+        content: "";
+        position: absolute;
+        top: -1px; left: -1px; right: -1px;
+        height: 2px;
+        background: #c2410c;
+        border-radius: 2px;
+    }
+</style>
+</head>
+
+<body class="min-h-screen antialiased text-ink">
+
+<!-- ═══ HEADER ═══════════════════════════════════════════════════ -->
+<header class="border-b border-border bg-paper sticky top-0 z-30">
+    <div class="max-w-[1400px] mx-auto px-5 sm:px-8 py-4 flex items-center justify-between gap-4">
+        <div class="flex items-baseline gap-3">
+            <h1 class="text-lg sm:text-xl font-semibold tracking-wide">
+                <span class="inline-block align-middle text-[22px] mr-1.5" aria-hidden="true">🍱</span>日めくり献立
+            </h1>
+            <span class="hidden sm:inline text-xs text-muted tracking-wider">weekly menu · local-first</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <button id="btnFamily"
+                    class="text-xs sm:text-sm px-3 py-1.5 rounded border border-border hover:border-ink hover:text-ink text-sub transition"
+                    title="家族構成を設定">
+                👨‍👩‍👧 <span class="hidden sm:inline">家族</span>
+            </button>
+            <button id="btnInspiration"
+                    class="text-xs sm:text-sm px-3 py-1.5 rounded border border-border hover:border-accent hover:text-accent transition">
+                💡 <span class="hidden sm:inline">ひらめき</span>
+            </button>
+            <button id="btnReset"
+                    class="text-xs sm:text-sm px-3 py-1.5 rounded text-sub hover:text-ink transition"
+                    title="今週の献立をクリア">
+                ↻ <span class="hidden sm:inline">クリア</span>
+            </button>
+        </div>
+    </div>
+</header>
+
+<main class="max-w-[1400px] mx-auto px-5 sm:px-8 py-6 lg:py-8 grid lg:grid-cols-[320px_1fr] gap-6 lg:gap-8">
+
+    <!-- ═══ SIDEBAR (desktop: left column · mobile: below main) ═════════════════ -->
+    <aside class="order-2 lg:order-1 space-y-6">
+        <!-- Search -->
+        <section>
+            <label for="search" class="block text-[11px] font-medium text-muted tracking-wider mb-2">
+                レシピを探す
+            </label>
+            <div class="relative">
+                <input id="search" type="text" placeholder="料理名 / 食材 / タグ"
+                       class="w-full px-3 py-2 pl-9 text-sm bg-paper border border-border rounded-md
+                              focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink/10
+                              placeholder:text-muted transition">
+                <svg class="absolute left-2.5 top-2.5 w-4 h-4 text-muted" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9 3a6 6 0 104.472 10.028l3.25 3.25a1 1 0 001.414-1.414l-3.25-3.25A6 6 0 009 3zM5 9a4 4 0 118 0 4 4 0 01-8 0z"/>
+                </svg>
+            </div>
+        </section>
+
+        <!-- Favorites -->
+        <section>
+            <div class="flex items-baseline justify-between mb-2">
+                <h2 class="text-[11px] font-medium text-muted tracking-wider">
+                    ★ お気に入り
+                </h2>
+                <span id="favCount" class="text-[10px] text-muted tracking-wider"></span>
+            </div>
+            <div id="favList" class="space-y-1 max-h-[260px] overflow-y-auto scroll-fine"></div>
+            <p id="favEmpty" class="text-xs text-muted italic py-2 hidden">
+                ★ マークで気に入ったレシピを保存
+            </p>
+        </section>
+
+        <!-- Catalog -->
+        <section>
+            <div class="flex items-baseline justify-between mb-2">
+                <h2 class="text-[11px] font-medium text-muted tracking-wider">
+                    カタログ（全レシピ）
+                </h2>
+                <span id="catCount" class="text-[10px] text-muted tracking-wider"></span>
+            </div>
+            <div id="catList" class="space-y-1 max-h-[420px] overflow-y-auto scroll-fine"></div>
+        </section>
+    </aside>
+
+    <!-- ═══ MAIN: TODAY CARD + WEEKLY MENU ═══════════════════════ -->
+    <section class="order-1 lg:order-2 space-y-6">
+
+        <!-- 🗓 日めくり — Today's meals as a calendar page -->
+        <article id="todayCard" class="relative border border-border rounded-xl shadow-sm overflow-hidden">
+            <!-- Decorative binder holes -->
+            <div class="flex justify-center gap-12 pt-3 pb-1" aria-hidden="true">
+                <span class="w-2 h-2 rounded-full border border-border bg-hover"></span>
+                <span class="w-2 h-2 rounded-full border border-border bg-hover"></span>
+                <span class="w-2 h-2 rounded-full border border-border bg-hover"></span>
+            </div>
+            <!-- Date -->
+            <header class="text-center pt-2 pb-5">
+                <div class="text-[10px] tracking-[0.4em] text-muted uppercase">Today · きょう</div>
+                <div id="todayDateNum" class="today-date-big text-[72px] sm:text-[96px] mt-2">21</div>
+                <div class="flex items-center justify-center gap-3 mt-2">
+                    <span class="h-px w-8 bg-accent"></span>
+                    <span id="todayDateLabel" class="text-sm text-sub tracking-wider">4月 · 火曜日</span>
+                    <span class="h-px w-8 bg-accent"></span>
+                </div>
+            </header>
+            <!-- Meals -->
+            <div class="today-meals px-5 sm:px-8 pb-6">
+                <div>
+                    <div class="today-meal-label">🌅 朝</div>
+                    <div id="todayBreakfast" class="today-meal-list"></div>
+                </div>
+                <div>
+                    <div class="today-meal-label">☀️ 昼</div>
+                    <div id="todayLunch" class="today-meal-list"></div>
+                </div>
+                <div>
+                    <div class="today-meal-label">🌙 夜</div>
+                    <div id="todayDinner" class="today-meal-list"></div>
+                </div>
+            </div>
+            <footer class="text-center py-2.5 border-t border-border bg-cream/40 text-[10px] text-muted tracking-[0.3em] uppercase">
+                ◼ 日めくり献立  ·  daily flip
+            </footer>
+        </article>
+
+        <div class="flex items-baseline justify-between gap-4">
+            <div>
+                <h2 class="text-xl sm:text-2xl font-semibold tracking-wide">🍱 一週間の献立</h2>
+                <p class="text-xs text-muted mt-1">枠をタップ → 朝・昼・夜の献立を組む</p>
+            </div>
+            <div class="hidden sm:flex items-center gap-2 text-xs text-muted">
+                <span class="inline-flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-sm bg-sky-50 border border-sky-300"></span>🌅 朝
+                </span>
+                <span class="inline-flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-sm bg-amber-50 border border-amber-300"></span>☀️ 昼
+                </span>
+                <span class="inline-flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-sm bg-indigo-50 border border-indigo-300"></span>🌙 夜
+                </span>
+            </div>
+        </div>
+
+        <!-- Week grid (mobile: 1 col stacked days; desktop: 7 cols) -->
+        <div id="weekGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-2 lg:gap-3"></div>
+
+        <!-- Save bar -->
+        <div class="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center border-t border-border pt-5">
+            <input id="saveName" type="text" placeholder="この献立に名前を付けて保存 (例: 定番の週)"
+                   class="flex-1 px-3 py-2 text-sm bg-paper border border-border rounded-md
+                          focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink/10
+                          placeholder:text-muted transition">
+            <button id="btnSave"
+                    class="px-4 py-2 text-sm bg-ink text-paper rounded-md hover:opacity-90 transition whitespace-nowrap">
+                保存
+            </button>
+        </div>
+
+        <!-- Saved menus -->
+        <section>
+            <h3 class="text-[11px] font-medium text-muted tracking-wider mb-3">
+                保存済み献立
+            </h3>
+            <div id="savedList" class="flex flex-wrap gap-2"></div>
+            <p id="savedEmpty" class="text-xs text-muted italic hidden">
+                まだ保存した献立はありません
+            </p>
+        </section>
+
+        <!-- Inspiration panel -->
+        <section id="inspirationPanel" class="hidden border border-border rounded-lg p-4 sm:p-5 bg-orange-50/50">
+            <div class="flex items-baseline justify-between mb-3">
+                <h3 class="text-sm font-semibold tracking-wide">💡 ひらめき</h3>
+                <button id="btnInspClose" class="text-xs text-muted hover:text-ink transition">× 閉じる</button>
+            </div>
+            <p class="text-xs text-sub mb-4">お気に入り以外からランダムに。マンネリ防止に。</p>
+            <div id="inspList" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
+            <button id="btnInspRefresh"
+                    class="mt-4 text-xs text-accent hover:text-ink transition">
+                ↻ もう一度ひらめく
+            </button>
+        </section>
+    </section>
+
+</main>
+
+<!-- ═══ PICKER MODAL ═══════════════════════════════════════════ -->
+<div id="pickerModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40" aria-hidden="true">
+    <div class="bg-paper w-full max-w-lg max-h-[85vh] rounded-lg shadow-soft flex flex-col modal-slide">
+        <header class="flex items-baseline justify-between px-5 py-4 border-b border-border">
+            <div>
+                <h3 class="text-sm font-semibold tracking-wide">献立を選ぶ</h3>
+                <p id="pickerSlotLabel" class="text-xs text-muted mt-0.5"></p>
+            </div>
+            <button id="pickerClose" class="text-muted hover:text-ink text-lg leading-none">×</button>
+        </header>
+        <nav class="flex border-b border-border px-5 gap-4 text-xs">
+            <button data-tab="fav" class="picker-tab py-2.5 border-b-2 border-transparent hover:text-ink text-muted">★ お気に入り</button>
+            <button data-tab="all" class="picker-tab py-2.5 border-b-2 border-ink text-ink">全レシピ</button>
+        </nav>
+        <div class="px-5 py-3 border-b border-border">
+            <input id="pickerSearch" type="text" placeholder="検索..."
+                   class="w-full px-3 py-2 text-sm bg-paper border border-border rounded-md
+                          focus:outline-none focus:border-ink placeholder:text-muted">
+        </div>
+        <div id="pickerList" class="flex-1 overflow-y-auto scroll-fine px-2 py-2"></div>
+        <footer class="px-5 py-3 border-t border-border text-[10px] text-muted tracking-wider">
+            クリックして枠に登録 · ★ でお気に入り追加
+        </footer>
+    </div>
+</div>
+
+<!-- ═══ FAMILY PROFILE MODAL (onboarding / settings) ═══ -->
+<div id="familyModal" class="hidden fixed inset-0 z-[57] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-ink/40" aria-hidden="true">
+    <div class="bg-paper w-full sm:max-w-md max-h-[92vh]
+                sm:rounded-lg rounded-t-2xl shadow-soft flex flex-col modal-slide">
+        <header class="flex items-baseline justify-between px-5 py-4 border-b border-border">
+            <div>
+                <h3 class="text-sm font-semibold tracking-wide">👨‍👩‍👧 家族構成</h3>
+                <p class="text-xs text-muted mt-0.5">おすすめのレシピ選定に使います</p>
+            </div>
+            <button id="familyClose" class="text-muted hover:text-ink text-lg leading-none">×</button>
+        </header>
+        <div class="flex-1 overflow-y-auto px-5 py-4">
+            <p class="text-sm text-sub leading-relaxed mb-5">
+                一緒に食べる家族を選んでください（複数可）。
+                小さいお子さんがいる場合、辛い料理や生ものは「ひらめき」から自動で除外されます。
+            </p>
+            <div id="familyChoices" class="grid grid-cols-2 gap-2"></div>
+        </div>
+        <footer class="flex items-center gap-2 px-5 py-3 border-t border-border">
+            <button id="familySkip" class="px-3 py-2 text-sm text-sub hover:text-ink transition">
+                スキップ
+            </button>
+            <button id="familySave" class="flex-1 px-3 py-2 text-sm bg-ink text-paper rounded-md hover:opacity-90 transition font-medium">
+                保存
+            </button>
+        </footer>
+    </div>
+</div>
+
+<!-- ═══ MEAL COMPOSER MODAL (drill-down: build a meal from multiple dishes) ═══ -->
+<div id="composerModal" class="hidden fixed inset-0 z-[55] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-ink/40" aria-hidden="true">
+    <div class="bg-paper w-full sm:max-w-md max-h-[92vh] sm:max-h-[85vh]
+                sm:rounded-lg rounded-t-2xl shadow-soft flex flex-col modal-slide">
+        <header class="flex items-center justify-between px-5 py-4 border-b border-border">
+            <div class="flex items-center gap-3">
+                <span id="composerMealEmoji" class="text-2xl" aria-hidden="true"></span>
+                <div>
+                    <h3 id="composerTitle" class="text-sm font-semibold tracking-wide"></h3>
+                    <p id="composerSubtitle" class="text-xs text-muted mt-0.5"></p>
+                </div>
+            </div>
+            <button id="composerClose" class="text-muted hover:text-ink text-lg leading-none">×</button>
+        </header>
+
+        <div id="composerList" class="flex-1 overflow-y-auto scroll-fine px-4 py-3 space-y-2"></div>
+
+        <footer class="px-4 py-3 border-t border-border flex items-center gap-2">
+            <button id="composerAddBtn"
+                    class="flex-1 px-4 py-2.5 bg-ink text-paper text-sm rounded-md hover:opacity-90 transition font-medium">
+                + レシピを追加
+            </button>
+            <button id="composerDoneBtn"
+                    class="px-4 py-2.5 text-sm text-sub hover:text-ink transition">
+                完了
+            </button>
+        </footer>
+    </div>
+</div>
+
+<!-- ═══ RECIPE DETAIL MODAL (ingredients + steps) ═══ -->
+<div id="detailModal" class="hidden fixed inset-0 z-[58] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-ink/40" aria-hidden="true">
+    <div class="bg-paper w-full sm:max-w-lg max-h-[92vh] sm:max-h-[88vh]
+                sm:rounded-lg rounded-t-2xl shadow-soft flex flex-col modal-slide">
+        <header class="flex items-start justify-between px-5 py-4 border-b border-border">
+            <div class="flex items-center gap-3">
+                <span id="detailEmoji" class="text-3xl leading-none" aria-hidden="true"></span>
+                <div>
+                    <h3 id="detailName" class="text-base font-semibold tracking-wide"></h3>
+                    <p id="detailMeta" class="text-xs text-muted mt-1"></p>
+                </div>
+            </div>
+            <button id="detailClose" class="text-muted hover:text-ink text-lg leading-none">×</button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto scroll-fine px-5 py-4">
+            <!-- Hero photo (Loremflickr · CC-licensed) -->
+            <div id="detailImgWrap" class="relative mb-5 aspect-[3/2] rounded-lg overflow-hidden bg-hover border border-border">
+                <div id="detailImgLoading" class="absolute inset-0 flex items-center justify-center text-muted text-[10px] tracking-widest uppercase">
+                    loading photo…
+                </div>
+                <img id="detailImg" class="w-full h-full object-cover opacity-0 transition-opacity duration-300"
+                     alt="" loading="lazy" decoding="async">
+                <div id="detailImgFallback" class="absolute inset-0 hidden flex-col items-center justify-center bg-hover">
+                    <span id="detailImgFallbackEmoji" class="text-7xl leading-none"></span>
+                    <span class="text-[10px] text-muted tracking-widest uppercase mt-2">no photo</span>
+                </div>
+                <div class="absolute bottom-2 right-2 text-[9px] text-white/80 bg-black/40 px-1.5 py-0.5 rounded tracking-wider">
+                    📷 Flickr (CC)
+                </div>
+            </div>
+
+            <section class="mb-6">
+                <h4 class="text-[11px] font-medium text-muted tracking-wider mb-3 flex items-baseline gap-2">
+                    <span>🛒 材料</span>
+                    <span id="detailServes" class="text-[10px]"></span>
+                </h4>
+                <ul id="detailIngredients" class="space-y-2 text-sm"></ul>
+            </section>
+
+            <section class="mb-6">
+                <h4 class="text-[11px] font-medium text-muted tracking-wider mb-3">👩‍🍳 作り方</h4>
+                <ol id="detailSteps" class="space-y-3 text-sm"></ol>
+            </section>
+
+            <section id="detailNoteBox" class="mb-4 hidden">
+                <h4 class="text-[11px] font-medium text-muted tracking-wider mb-2">💡 メモ</h4>
+                <p id="detailNote" class="text-sm text-sub italic bg-hover/60 p-3 rounded-md"></p>
+            </section>
+
+            <div id="detailTags" class="flex flex-wrap gap-1.5"></div>
+        </div>
+
+        <footer id="detailFooter" class="flex items-center gap-2 px-5 py-3 border-t border-border"></footer>
+    </div>
+</div>
+
+<!-- ═══ TOAST ═════════════════════════════════════════════════ -->
+<div id="toast" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-[60]
+            px-4 py-2 rounded-md bg-ink text-paper text-xs shadow-soft modal-fade">
+</div>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════════════════════════
+// RECIPE CATALOG — 40 recipes with ingredients + steps
+// Schema: { id, name, emoji, cat, time, serves, tags, ingredients[{name,amount}], steps[], note? }
+// Extensible toward 100 — add entries in the same shape below.
+// ══════════════════════════════════════════════════════════════════
+const RECIPES = [
+    { id: 'r01', name: '鮭の塩焼き', emoji: '🐟', cat: '主菜', time: 15, serves: 2,
+      tags: ['魚','焼き物','定番'],
+      ingredients: [
+        { name: '生鮭', amount: '2切れ' },
+        { name: '塩', amount: '小さじ1/4' },
+        { name: '大根おろし', amount: '適量' },
+        { name: 'レモン', amount: '1/4個' },
+      ],
+      steps: [
+        '鮭全体に薄く塩をふり、10分おく。出た水気をキッチンペーパーで拭き取る。',
+        'グリルを中火で予熱し、皮目から5〜6分焼く。',
+        '裏返して3〜4分、中まで火を通す。',
+        '器に盛り、大根おろしとレモンを添える。',
+      ],
+      note: '皮をパリッと焼くコツは強めの予熱と、返しすぎないこと。' },
+
+    { id: 'r02', name: '豚の生姜焼き', emoji: '🐖', cat: '主菜', time: 20, serves: 2,
+      tags: ['豚肉','生姜','定番'],
+      ingredients: [
+        { name: '豚ロース薄切り', amount: '200g' },
+        { name: '玉ねぎ', amount: '1/2個' },
+        { name: 'しょうが（すりおろし）', amount: '大さじ1' },
+        { name: '酒', amount: '大さじ1' },
+        { name: 'しょうゆ', amount: '大さじ2' },
+        { name: 'みりん', amount: '大さじ2' },
+        { name: '砂糖', amount: '小さじ1' },
+      ],
+      steps: [
+        '豚肉は筋を切り、しょうがと酒を揉み込んで10分おく。',
+        '玉ねぎは薄切り。しょうゆ・みりん・砂糖を合わせておく。',
+        'フライパンに油を熱し、豚肉を広げて両面を焼き、玉ねぎを加える。',
+        '玉ねぎが透き通ったら合わせ調味料を回しかけ、煮絡める。',
+      ] },
+
+    { id: 'r03', name: '鶏の照り焼き', emoji: '🍗', cat: '主菜', time: 20, serves: 2,
+      tags: ['鶏肉','甘辛','子ども'],
+      ingredients: [
+        { name: '鶏もも肉', amount: '1枚（約250g）' },
+        { name: 'しょうゆ', amount: '大さじ2' },
+        { name: 'みりん', amount: '大さじ2' },
+        { name: '酒', amount: '大さじ1' },
+        { name: '砂糖', amount: '大さじ1' },
+      ],
+      steps: [
+        '鶏もも肉は余分な脂を取り、フォークで数カ所穴を開ける。',
+        'フライパンに油を熱し、皮目から中火で5分焼く。',
+        '裏返して3分焼き、出た脂をキッチンペーパーで吸い取る。',
+        '合わせた調味料を加え、煮絡めて照りを出す。食べやすく切って器へ。',
+      ] },
+
+    { id: 'r04', name: '和風ハンバーグ', emoji: '🍖', cat: '主菜', time: 30, serves: 2,
+      tags: ['ひき肉','子ども','ポン酢'],
+      ingredients: [
+        { name: '合いびき肉', amount: '300g' },
+        { name: '玉ねぎ', amount: '1/2個' },
+        { name: 'パン粉', amount: '大さじ3' },
+        { name: '牛乳', amount: '大さじ2' },
+        { name: '卵', amount: '1個' },
+        { name: '塩こしょう', amount: '少々' },
+        { name: '大根おろし・ポン酢', amount: '適量' },
+      ],
+      steps: [
+        '玉ねぎをみじん切りにし、レンジで1分加熱して冷ます。',
+        'パン粉を牛乳に浸しておく。',
+        'ボウルに挽き肉・玉ねぎ・パン粉・卵・塩こしょうを入れよく練る。',
+        '2等分して楕円形に成形、中心をくぼませる。',
+        'フライパンで両面に焼き色を付け、蓋をして弱火で8分蒸し焼き。',
+        '器に盛り、大根おろしとポン酢をかける。',
+      ] },
+
+    { id: 'r05', name: '鶏の唐揚げ', emoji: '🍗', cat: '主菜', time: 25, serves: 2,
+      tags: ['鶏肉','揚げ物','子ども'],
+      ingredients: [
+        { name: '鶏もも肉', amount: '300g' },
+        { name: 'しょうゆ', amount: '大さじ2' },
+        { name: '酒', amount: '大さじ1' },
+        { name: 'しょうが・にんにく', amount: '各小さじ1' },
+        { name: '片栗粉・小麦粉', amount: '各大さじ3' },
+        { name: '揚げ油', amount: '適量' },
+      ],
+      steps: [
+        '鶏肉を一口大に切り、しょうゆ・酒・しょうが・にんにくに20分漬ける。',
+        '片栗粉と小麦粉を混ぜたものを鶏肉にまぶす。',
+        '170℃の油で3分揚げ、一度取り出して2分休ませる。',
+        '油の温度を180℃に上げ、1分でカリッと揚げる（二度揚げ）。',
+      ],
+      note: '二度揚げが中までジューシー、外サクの決め手。' },
+
+    { id: 'r06', name: '鮭のムニエル', emoji: '🐟', cat: '主菜', time: 15, serves: 2,
+      tags: ['魚','洋風','バター'],
+      ingredients: [
+        { name: '生鮭', amount: '2切れ' },
+        { name: '塩こしょう', amount: '少々' },
+        { name: '小麦粉', amount: '適量' },
+        { name: 'バター', amount: '10g' },
+        { name: 'オリーブオイル', amount: '大さじ1' },
+        { name: 'レモン', amount: '1/4個' },
+      ],
+      steps: [
+        '鮭に塩こしょうを振り、小麦粉を薄くまぶす。',
+        'フライパンにオイルを熱し、皮目から中火で4分焼く。',
+        '裏返してバターを加え、2分焼く。溶けたバターを鮭にかけながら仕上げる。',
+        'レモンを添えて完成。',
+      ] },
+
+    { id: 'r07', name: '豚バラ大根', emoji: '🥩', cat: '主菜', time: 40, serves: 3,
+      tags: ['豚肉','大根','煮物'],
+      ingredients: [
+        { name: '豚バラ薄切り', amount: '200g' },
+        { name: '大根', amount: '1/3本' },
+        { name: 'しょうが', amount: '1かけ' },
+        { name: 'しょうゆ', amount: '大さじ3' },
+        { name: 'みりん', amount: '大さじ2' },
+        { name: '砂糖', amount: '大さじ1' },
+        { name: '水', amount: '300ml' },
+      ],
+      steps: [
+        '大根は1cm厚のいちょう切り、豚バラは5cm幅に切る。',
+        '鍋に豚バラを炒め、しょうが（薄切り）を加える。',
+        '大根・水・調味料を加え、落し蓋をして30分煮る。',
+        '煮汁が少なくなり、大根が柔らかくなったら完成。',
+      ] },
+
+    { id: 'r08', name: '親子丼', emoji: '🍚', cat: '丼もの', time: 15, serves: 2,
+      tags: ['鶏肉','卵','丼','時短'],
+      ingredients: [
+        { name: '鶏もも肉', amount: '150g' },
+        { name: '玉ねぎ', amount: '1/4個' },
+        { name: '卵', amount: '3個' },
+        { name: 'だし', amount: '150ml' },
+        { name: 'しょうゆ', amount: '大さじ1.5' },
+        { name: 'みりん', amount: '大さじ1.5' },
+        { name: '砂糖', amount: '小さじ1' },
+        { name: 'ご飯', amount: '2杯分' },
+        { name: '三つ葉', amount: '少々' },
+      ],
+      steps: [
+        '鶏肉を一口大、玉ねぎを薄切りにする。',
+        '小さなフライパン（1人分ずつ）にだし・調味料を入れ、鶏・玉ねぎを煮る。',
+        '鶏に火が通ったら、溶き卵を2/3量回し入れ、半熟で残りを加える。',
+        '5秒ほどで火を止め、ご飯にのせて三つ葉を散らす。',
+      ],
+      note: '1人分ずつ作るとふわっと仕上がる。' },
+
+    { id: 'r09', name: '牛丼', emoji: '🥩', cat: '丼もの', time: 15, serves: 2,
+      tags: ['牛肉','丼','時短'],
+      ingredients: [
+        { name: '牛肉薄切り', amount: '200g' },
+        { name: '玉ねぎ', amount: '1/2個' },
+        { name: 'しょうが', amount: '1かけ' },
+        { name: 'しょうゆ', amount: '大さじ2' },
+        { name: 'みりん', amount: '大さじ2' },
+        { name: '酒', amount: '大さじ2' },
+        { name: '砂糖', amount: '大さじ1' },
+        { name: '水', amount: '100ml' },
+        { name: 'ご飯', amount: '2杯分' },
+      ],
+      steps: [
+        '玉ねぎは薄切り、しょうがは千切り。',
+        '鍋に水・調味料・しょうがを入れ煮立てる。',
+        '玉ねぎを入れ透き通ったら牛肉を加え、アクを取りながら5分煮る。',
+        'ご飯にたっぷり盛る。',
+      ] },
+
+    { id: 'r10', name: '鶏そぼろ丼', emoji: '🍲', cat: '丼もの', time: 15, serves: 2,
+      tags: ['鶏ひき肉','丼','子ども','時短'],
+      ingredients: [
+        { name: '鶏ひき肉', amount: '200g' },
+        { name: '卵', amount: '2個' },
+        { name: 'しょうゆ', amount: '大さじ2' },
+        { name: 'みりん', amount: '大さじ2' },
+        { name: '砂糖', amount: '大さじ1' },
+        { name: 'しょうが', amount: '少々' },
+        { name: 'ご飯', amount: '2杯分' },
+      ],
+      steps: [
+        '鍋に鶏ひき肉・調味料・しょうがを入れ、中火で水分がなくなるまで炒り煮。',
+        '別の鍋で溶き卵に塩少々を加え、菜箸3〜4本で炒り卵を作る。',
+        'ご飯にそぼろと炒り卵を半々にのせる。',
+      ] },
+
+    { id: 'r11', name: 'オムライス', emoji: '🍳', cat: '一品', time: 25, serves: 2,
+      tags: ['卵','ケチャップ','子ども'],
+      ingredients: [
+        { name: 'ご飯', amount: '2杯分' },
+        { name: '鶏もも肉', amount: '100g' },
+        { name: '玉ねぎ', amount: '1/4個' },
+        { name: '卵', amount: '4個（1人2個）' },
+        { name: 'ケチャップ', amount: '大さじ4' },
+        { name: 'バター', amount: '10g' },
+        { name: '塩こしょう', amount: '少々' },
+      ],
+      steps: [
+        '鶏肉と玉ねぎをみじん切り、バターで炒める。',
+        'ご飯を加え、ケチャップと塩こしょうで味付けしてチキンライスを作る。',
+        '卵2個を溶き、塩少々。フライパンにバターを熱し、半熟オムレツを作る。',
+        'チキンライスの上にオムレツをのせ、ケチャップをかける。',
+      ] },
+
+    { id: 'r12', name: 'カレーライス', emoji: '🍛', cat: '一品', time: 40, serves: 4,
+      tags: ['定番','子ども','作り置き'],
+      ingredients: [
+        { name: '鶏もも or 豚肉', amount: '300g' },
+        { name: '玉ねぎ', amount: '1個' },
+        { name: 'にんじん', amount: '1本' },
+        { name: 'じゃがいも', amount: '2個' },
+        { name: 'カレールー', amount: '1/2箱' },
+        { name: '水', amount: '700ml' },
+        { name: 'ご飯', amount: '4杯分' },
+      ],
+      steps: [
+        '肉・野菜を一口大に切る。',
+        '鍋に油を熱し、玉ねぎを炒めしんなりしたら肉を加え色が変わるまで。',
+        'にんじん・じゃがいもを加え水を入れ、アクを取りながら15分煮る。',
+        '火を止めてルーを溶かし、再度弱火で10分。ご飯と一緒に器へ。',
+      ] },
+
+    { id: 'r13', name: 'クリームシチュー', emoji: '🫕', cat: '一品', time: 40, serves: 4,
+      tags: ['洋風','乳','子ども'],
+      ingredients: [
+        { name: '鶏もも肉', amount: '300g' },
+        { name: '玉ねぎ', amount: '1個' },
+        { name: 'にんじん', amount: '1本' },
+        { name: 'じゃがいも', amount: '2個' },
+        { name: 'ブロッコリー', amount: '1/2個' },
+        { name: 'シチュールー', amount: '1/2箱' },
+        { name: '水', amount: '500ml' },
+        { name: '牛乳', amount: '200ml' },
+      ],
+      steps: [
+        '鶏・野菜を一口大、ブロッコリーは小房に。',
+        '鶏を炒め、玉ねぎ・にんじん・じゃがいもを加え水で15分煮る。',
+        'ブロッコリーを加え、ルーを溶かす。',
+        '牛乳を加え、弱火で5分温める（沸騰させない）。',
+      ] },
+
+    { id: 'r14', name: 'お好み焼き', emoji: '🥞', cat: '一品', time: 25, serves: 2,
+      tags: ['粉もの','キャベツ','関西'],
+      ingredients: [
+        { name: 'キャベツ', amount: '1/4個' },
+        { name: '豚バラ薄切り', amount: '100g' },
+        { name: '卵', amount: '2個' },
+        { name: 'お好み焼き粉', amount: '100g' },
+        { name: '水', amount: '120ml' },
+        { name: '長いも（すりおろし）', amount: '大さじ2' },
+        { name: 'ソース・マヨ・青のり・鰹節', amount: '適量' },
+      ],
+      steps: [
+        'キャベツは千切り。生地（粉・水・卵・長いも）を混ぜる。',
+        'キャベツを生地に加え、ざっくり混ぜる。',
+        '熱したフライパンに生地を丸く広げ、豚バラをのせる。',
+        '5分焼いて裏返し、蓋をして5分。もう一度返して1分、ソースなどを塗る。',
+      ],
+      note: '長いもを入れるとふわふわに仕上がる。' },
+
+    { id: 'r15', name: '肉じゃが', emoji: '🥔', cat: '副菜', time: 35, serves: 4,
+      tags: ['じゃがいも','和食','煮物','定番'],
+      ingredients: [
+        { name: '牛肉 or 豚肉薄切り', amount: '200g' },
+        { name: 'じゃがいも', amount: '3個' },
+        { name: '玉ねぎ', amount: '1個' },
+        { name: 'にんじん', amount: '1本' },
+        { name: 'しらたき', amount: '100g' },
+        { name: 'しょうゆ', amount: '大さじ3' },
+        { name: 'みりん', amount: '大さじ2' },
+        { name: '砂糖', amount: '大さじ2' },
+        { name: '酒', amount: '大さじ2' },
+        { name: 'だし', amount: '300ml' },
+      ],
+      steps: [
+        'じゃがいもを乱切り、玉ねぎはくし切り、にんじんは乱切り、しらたきは下茹で。',
+        '鍋に油を熱し、肉を炒め色が変わったら野菜を加える。',
+        'だしと調味料を加え、落し蓋をして中火で15〜20分煮る。',
+        'じゃがいもが柔らかくなったら完成。',
+      ] },
+
+    { id: 'r16', name: 'きんぴらごぼう', emoji: '🥕', cat: '副菜', time: 15, serves: 3,
+      tags: ['ごぼう','にんじん','常備菜'],
+      ingredients: [
+        { name: 'ごぼう', amount: '1本' },
+        { name: 'にんじん', amount: '1/2本' },
+        { name: 'ごま油', amount: '大さじ1' },
+        { name: 'しょうゆ', amount: '大さじ1.5' },
+        { name: 'みりん', amount: '大さじ1' },
+        { name: '砂糖', amount: '大さじ1' },
+        { name: '白いりごま', amount: '少々' },
+      ],
+      steps: [
+        'ごぼうとにんじんを細切り、ごぼうは水にさらす。',
+        'フライパンにごま油を熱し、ごぼうを1分炒める。にんじんを加え更に1分。',
+        'しょうゆ・みりん・砂糖を加え、水分が飛ぶまで炒める。',
+        'ごまを振って完成。',
+      ] },
+
+    { id: 'r17', name: 'ひじきの煮物', emoji: '🫘', cat: '副菜', time: 20, serves: 4,
+      tags: ['ひじき','常備菜','鉄分'],
+      ingredients: [
+        { name: '乾燥ひじき', amount: '20g' },
+        { name: 'にんじん', amount: '1/2本' },
+        { name: '油揚げ', amount: '1枚' },
+        { name: '大豆水煮', amount: '80g' },
+        { name: 'しょうゆ', amount: '大さじ2' },
+        { name: 'みりん', amount: '大さじ1' },
+        { name: '砂糖', amount: '大さじ1' },
+        { name: 'だし', amount: '200ml' },
+      ],
+      steps: [
+        'ひじきは水で戻し、洗って水気を切る。',
+        'にんじんは細切り、油揚げは短冊切り。',
+        '鍋に油を熱し全体を炒め、だしと調味料を加える。',
+        '中火で10〜15分、煮汁がほぼ無くなるまで煮る。',
+      ] },
+
+    { id: 'r18', name: 'かぼちゃの煮物', emoji: '🎃', cat: '副菜', time: 20, serves: 3,
+      tags: ['かぼちゃ','甘い','子ども'],
+      ingredients: [
+        { name: 'かぼちゃ', amount: '1/4個（約400g）' },
+        { name: 'しょうゆ', amount: '大さじ1.5' },
+        { name: 'みりん', amount: '大さじ2' },
+        { name: '砂糖', amount: '大さじ1' },
+        { name: 'だし', amount: '200ml' },
+      ],
+      steps: [
+        'かぼちゃは4cm角に切り、面取りする（煮崩れ防止）。',
+        '鍋に皮を下にして並べ、だしと調味料を加える。',
+        '落し蓋をして中火で15分、かぼちゃが柔らかくなるまで煮る。',
+        '火を止めて10分おき、味を含ませる。',
+      ] },
+
+    { id: 'r19', name: 'だし巻き卵', emoji: '🥚', cat: '副菜', time: 10, serves: 2,
+      tags: ['卵','だし','お弁当'],
+      ingredients: [
+        { name: '卵', amount: '3個' },
+        { name: 'だし', amount: '大さじ3' },
+        { name: 'しょうゆ', amount: '小さじ1/2' },
+        { name: 'みりん', amount: '小さじ1' },
+        { name: '塩', amount: '少々' },
+      ],
+      steps: [
+        '卵を溶き、だしと調味料を加えて混ぜる。',
+        '卵焼き器に油を薄く引き、卵液の1/3を流して手前に巻く。',
+        'さらに1/3を流し、同様に巻く。残りも同じ。',
+        '巻きすで形を整え、食べやすく切る。',
+      ] },
+
+    { id: 'r20', name: '豚汁', emoji: '🍜', cat: '汁物', time: 25, serves: 4,
+      tags: ['豚肉','味噌','具だくさん','定番'],
+      ingredients: [
+        { name: '豚こま切れ肉', amount: '150g' },
+        { name: '大根', amount: '5cm' },
+        { name: 'にんじん', amount: '1/2本' },
+        { name: 'ごぼう', amount: '1/2本' },
+        { name: 'こんにゃく', amount: '1/4枚' },
+        { name: '長ねぎ', amount: '1/2本' },
+        { name: '味噌', amount: '大さじ3' },
+        { name: 'だし', amount: '800ml' },
+        { name: 'ごま油', amount: '大さじ1' },
+      ],
+      steps: [
+        '野菜はいちょう切り、ごぼうはささがき。こんにゃくは手でちぎって下茹で。',
+        '鍋にごま油を熱し、豚肉を炒め色が変わったら野菜とこんにゃくを加える。',
+        'だしを加え15分煮て、アクを取る。',
+        '味噌を溶き入れ、最後に長ねぎを散らす。',
+      ] },
+
+    { id: 'r21', name: 'さばの味噌煮', emoji: '🐟', cat: '主菜', time: 25, serves: 2,
+      tags: ['魚','煮物','味噌'],
+      ingredients: [
+        { name: 'さば', amount: '2切れ' },
+        { name: 'しょうが', amount: '1かけ' },
+        { name: '水', amount: '200ml' },
+        { name: '酒', amount: '大さじ3' },
+        { name: '味噌', amount: '大さじ2' },
+        { name: '砂糖', amount: '大さじ2' },
+        { name: 'みりん', amount: '大さじ1' },
+      ],
+      steps: [
+        'さばに熱湯を回しかけて霜降りする。',
+        '鍋に水・酒・しょうが（薄切り）を煮立て、さばを並べる。',
+        '落し蓋をして中火で5分煮る。',
+        '味噌を煮汁で溶いて戻し、砂糖とみりんも加え10分煮る。',
+      ] },
+
+    { id: 'r22', name: '鶏の甘酢あん', emoji: '🍗', cat: '主菜', time: 25, serves: 2,
+      tags: ['鶏肉','甘酢','子ども'],
+      ingredients: [
+        { name: '鶏もも肉', amount: '300g' },
+        { name: '片栗粉', amount: '大さじ3' },
+        { name: '玉ねぎ', amount: '1/2個' },
+        { name: 'にんじん', amount: '1/2本' },
+        { name: 'ピーマン', amount: '1個' },
+        { name: '酢', amount: '大さじ3' },
+        { name: 'しょうゆ', amount: '大さじ2' },
+        { name: '砂糖', amount: '大さじ3' },
+        { name: 'ケチャップ', amount: '大さじ2' },
+        { name: '水', amount: '100ml' },
+      ],
+      steps: [
+        '鶏肉を一口大に切り、片栗粉をまぶす。',
+        'フライパンに多めの油で鶏を両面揚げ焼きにする。',
+        '別フライパンで野菜を炒め、合わせ調味料を加える。',
+        '鶏を戻し入れ、水溶き片栗粉でとろみをつける。',
+      ] },
+
+    { id: 'r23', name: '肉豆腐', emoji: '🥘', cat: '主菜', time: 25, serves: 2,
+      tags: ['牛肉','豆腐','煮物'],
+      ingredients: [
+        { name: '牛肉薄切り', amount: '200g' },
+        { name: '木綿豆腐', amount: '1丁' },
+        { name: '長ねぎ', amount: '1本' },
+        { name: 'しいたけ', amount: '4個' },
+        { name: 'しょうゆ', amount: '大さじ3' },
+        { name: 'みりん', amount: '大さじ2' },
+        { name: '砂糖', amount: '大さじ2' },
+        { name: '水', amount: '200ml' },
+      ],
+      steps: [
+        '豆腐を6等分、長ねぎは斜め切り、しいたけは石づきを取る。',
+        '鍋に水と調味料を煮立て、牛肉を加えて色が変わるまで。',
+        '豆腐・長ねぎ・しいたけを加え、落し蓋で15分煮る。',
+      ] },
+
+    { id: 'r24', name: '麻婆豆腐（子ども向け）', emoji: '🌶', cat: '主菜', time: 20, serves: 3,
+      tags: ['豆腐','子ども','辛くない'],
+      ingredients: [
+        { name: '木綿豆腐', amount: '1丁' },
+        { name: '豚ひき肉', amount: '150g' },
+        { name: 'しょうが・にんにく', amount: '各少々' },
+        { name: '長ねぎ', amount: '1/4本' },
+        { name: '味噌', amount: '大さじ1' },
+        { name: 'しょうゆ', amount: '大さじ1' },
+        { name: '砂糖', amount: '小さじ1' },
+        { name: '鶏がらスープ', amount: '200ml' },
+        { name: '片栗粉', amount: '小さじ2' },
+        { name: 'ごま油', amount: '少々' },
+      ],
+      steps: [
+        '豆腐を2cm角、長ねぎをみじん切り。',
+        'フライパンで豚ひき肉を炒め、しょうが・にんにくを加える。',
+        '鶏がらスープ・味噌・しょうゆ・砂糖を加え、豆腐を入れ5分煮る。',
+        '水溶き片栗粉でとろみ、長ねぎとごま油で仕上げ。',
+      ],
+      note: '豆板醤や花椒なしで、優しい味に。' },
+
+    { id: 'r25', name: 'とんかつ', emoji: '🍖', cat: '主菜', time: 25, serves: 2,
+      tags: ['豚肉','揚げ物','子ども'],
+      ingredients: [
+        { name: '豚ロース', amount: '2枚（各120g）' },
+        { name: '塩こしょう', amount: '少々' },
+        { name: '小麦粉', amount: '大さじ3' },
+        { name: '卵', amount: '1個' },
+        { name: 'パン粉', amount: '1カップ' },
+        { name: '揚げ油', amount: '適量' },
+        { name: 'キャベツ', amount: '適量' },
+        { name: '中濃ソース', amount: '適量' },
+      ],
+      steps: [
+        '豚肉の筋を切り、塩こしょうを振る。',
+        '小麦粉→溶き卵→パン粉の順に衣をつける。',
+        '170℃の油で6〜8分、キツネ色にカリッと揚げる。',
+        '休ませてから切り、キャベツの千切りとソースを添える。',
+      ] },
+
+    { id: 'r26', name: 'チキン南蛮', emoji: '🍗', cat: '主菜', time: 30, serves: 2,
+      tags: ['鶏肉','甘酢','タルタル'],
+      ingredients: [
+        { name: '鶏もも肉', amount: '300g' },
+        { name: '小麦粉・片栗粉', amount: '各大さじ2' },
+        { name: '卵', amount: '1個' },
+        { name: '酢', amount: '大さじ3' },
+        { name: 'しょうゆ', amount: '大さじ2' },
+        { name: '砂糖', amount: '大さじ2' },
+        { name: 'タルタルソース（市販）', amount: '適量' },
+      ],
+      steps: [
+        '鶏肉を一口大に切り、小麦粉・片栗粉をまぶし溶き卵にくぐらす。',
+        '揚げ油170℃で5分、きつね色に揚げる。',
+        '甘酢（酢・しょうゆ・砂糖）を煮立てて、揚げた鶏を絡める。',
+        'タルタルソースをかけて完成。',
+      ] },
+
+    { id: 'r27', name: '海老とブロッコリーの塩炒め', emoji: '🦐', cat: '主菜', time: 15, serves: 2,
+      tags: ['海老','ブロッコリー','時短'],
+      ingredients: [
+        { name: 'むき海老', amount: '200g' },
+        { name: 'ブロッコリー', amount: '1/2個' },
+        { name: 'にんにく', amount: '1かけ' },
+        { name: '塩', amount: '小さじ1/2' },
+        { name: '酒', amount: '大さじ1' },
+        { name: '鶏がらスープ', amount: '50ml' },
+        { name: 'ごま油', amount: '小さじ1' },
+        { name: '片栗粉', amount: '小さじ1' },
+      ],
+      steps: [
+        '海老は背ワタを取り、酒と塩をもみこむ。ブロッコリーは小房で下茹で。',
+        'フライパンにごま油・にんにくを熱し、海老を炒める。',
+        'ブロッコリー、鶏がらスープを加えさっと炒める。',
+        '水溶き片栗粉でとろみ、塩で味を整える。',
+      ] },
+
+    { id: 'r28', name: '鶏のクリーム煮', emoji: '🍲', cat: '主菜', time: 30, serves: 3,
+      tags: ['鶏肉','洋風','乳'],
+      ingredients: [
+        { name: '鶏もも肉', amount: '300g' },
+        { name: '玉ねぎ', amount: '1/2個' },
+        { name: 'しめじ', amount: '1パック' },
+        { name: 'バター', amount: '20g' },
+        { name: '小麦粉', amount: '大さじ2' },
+        { name: '牛乳', amount: '300ml' },
+        { name: '固形コンソメ', amount: '1個' },
+        { name: '塩こしょう', amount: '少々' },
+      ],
+      steps: [
+        '鶏を一口大、玉ねぎは薄切り、しめじはほぐす。',
+        'フライパンにバターを溶かし、鶏を皮目から焼く。',
+        '玉ねぎ・しめじを加え炒め、小麦粉を振って1分炒める。',
+        '牛乳とコンソメを加え、とろみが出るまで煮る。塩こしょうで調える。',
+      ] },
+
+    { id: 'r29', name: '炒飯（簡単）', emoji: '🍚', cat: '一品', time: 15, serves: 2,
+      tags: ['ご飯','時短','子ども'],
+      ingredients: [
+        { name: 'ご飯（冷やご飯）', amount: '2杯分' },
+        { name: '卵', amount: '2個' },
+        { name: '長ねぎ', amount: '1/4本' },
+        { name: 'ハム or 焼豚', amount: '80g' },
+        { name: 'しょうゆ', amount: '大さじ1' },
+        { name: '塩こしょう', amount: '少々' },
+        { name: 'ごま油', amount: '大さじ1' },
+      ],
+      steps: [
+        '長ねぎとハムをみじん切り。卵は溶いておく。',
+        'フライパンにごま油を熱し、溶き卵を入れすぐにご飯を加える。',
+        '強火でパラパラになるまで炒める。',
+        'ハム・ねぎ・しょうゆ・塩こしょうで味付け。',
+      ] },
+
+    { id: 'r30', name: '鮭の混ぜご飯', emoji: '🍙', cat: '一品', time: 20, serves: 2,
+      tags: ['鮭','ご飯','子ども'],
+      ingredients: [
+        { name: '塩鮭', amount: '1切れ' },
+        { name: 'ご飯', amount: '2杯分' },
+        { name: 'しょうが', amount: '少々' },
+        { name: '青しそ', amount: '5枚' },
+        { name: '白ごま', amount: '大さじ1' },
+        { name: '塩', amount: '少々' },
+      ],
+      steps: [
+        '鮭をグリルで焼き、骨と皮を取ってほぐす。',
+        'しょうがはみじん切り、青しそは千切り。',
+        '炊きたてご飯に鮭・しょうが・しそ・ごまを混ぜる。',
+        '塩で味を整えて完成。',
+      ] },
+
+    { id: 'r31', name: 'ちらし寿司', emoji: '🍣', cat: '一品', time: 30, serves: 3,
+      tags: ['寿司','行事食','卵'],
+      ingredients: [
+        { name: 'ご飯', amount: '3杯分' },
+        { name: '寿司酢（市販）', amount: '大さじ3' },
+        { name: '錦糸卵（卵）', amount: '2個分' },
+        { name: 'きゅうり', amount: '1本' },
+        { name: 'かに風味かまぼこ', amount: '6本' },
+        { name: '桜でんぶ・紅しょうが', amount: '少々' },
+        { name: '刻み海苔', amount: '適量' },
+      ],
+      steps: [
+        '炊きたてご飯に寿司酢を混ぜ、うちわで冷ます。',
+        'きゅうりは小口切り、かにかまは割く。',
+        '酢飯に具を混ぜ込む（または上に散らす）。',
+        '錦糸卵・桜でんぶ・刻み海苔・紅しょうがをトッピング。',
+      ] },
+
+    { id: 'r32', name: 'ほうれん草のお浸し', emoji: '🥬', cat: '副菜', time: 10, serves: 2,
+      tags: ['ほうれん草','和食','時短'],
+      ingredients: [
+        { name: 'ほうれん草', amount: '1束' },
+        { name: '鰹節', amount: '少々' },
+        { name: 'しょうゆ', amount: '大さじ1' },
+        { name: 'だし', amount: '大さじ2' },
+        { name: '白ごま', amount: '少々' },
+      ],
+      steps: [
+        'ほうれん草は根元を落とし、塩少々を入れた熱湯で30秒茹でる。',
+        '冷水にさらし、水気を絞って4cm幅に切る。',
+        'だしとしょうゆを合わせた汁に浸す。',
+        '盛り付けて鰹節とごまを散らす。',
+      ] },
+
+    { id: 'r33', name: 'ポテトサラダ', emoji: '🥗', cat: '副菜', time: 25, serves: 3,
+      tags: ['じゃがいも','洋風','子ども'],
+      ingredients: [
+        { name: 'じゃがいも', amount: '3個' },
+        { name: 'きゅうり', amount: '1本' },
+        { name: 'にんじん', amount: '1/3本' },
+        { name: 'ハム', amount: '3枚' },
+        { name: '玉ねぎ', amount: '1/4個' },
+        { name: 'マヨネーズ', amount: '大さじ3' },
+        { name: '酢', amount: '小さじ1' },
+        { name: '塩こしょう', amount: '少々' },
+      ],
+      steps: [
+        'じゃがいもは茹でて皮をむき、熱いうちに酢と塩を絡める。',
+        'きゅうりは薄切り塩もみ、にんじんは薄切り茹で、玉ねぎはみじんで水にさらす。',
+        'じゃがいもを粗めに潰し、具材を混ぜる。',
+        'マヨネーズ・こしょうで和えて完成。',
+      ] },
+
+    { id: 'r34', name: '筑前煮', emoji: '🥢', cat: '副菜', time: 45, serves: 4,
+      tags: ['鶏肉','根菜','煮物'],
+      ingredients: [
+        { name: '鶏もも肉', amount: '200g' },
+        { name: 'ごぼう', amount: '1/2本' },
+        { name: 'にんじん', amount: '1本' },
+        { name: '里芋', amount: '4個' },
+        { name: 'しいたけ', amount: '4個' },
+        { name: 'こんにゃく', amount: '1/2枚' },
+        { name: 'しょうゆ', amount: '大さじ3' },
+        { name: 'みりん', amount: '大さじ2' },
+        { name: '砂糖', amount: '大さじ2' },
+        { name: 'だし', amount: '400ml' },
+      ],
+      steps: [
+        '野菜・鶏を一口大に切り、こんにゃくは下茹で。',
+        '鍋に油を熱し鶏を炒め、野菜を加える。',
+        'だしと調味料を加え、落し蓋で20分煮る。',
+        '煮汁が少なくなれば完成。',
+      ] },
+
+    { id: 'r35', name: '白和え', emoji: '🥣', cat: '副菜', time: 20, serves: 3,
+      tags: ['豆腐','和食','常備菜'],
+      ingredients: [
+        { name: '木綿豆腐', amount: '1/2丁' },
+        { name: 'ほうれん草', amount: '1/2束' },
+        { name: 'にんじん', amount: '1/3本' },
+        { name: 'しいたけ', amount: '2個' },
+        { name: '白ごま', amount: '大さじ2' },
+        { name: 'しょうゆ', amount: '大さじ1' },
+        { name: '砂糖', amount: '大さじ1' },
+        { name: '塩', amount: '少々' },
+      ],
+      steps: [
+        '豆腐は重しで水切り（15分）。ごまはすり鉢ですっておく。',
+        'ほうれん草は茹でて絞り3cm幅、にんじん・しいたけは千切りで煮る。',
+        '豆腐・ごま・しょうゆ・砂糖・塩を混ぜて衣を作る。',
+        '具材を衣で和える。',
+      ] },
+
+    { id: 'r36', name: '茶碗蒸し', emoji: '🥚', cat: '副菜', time: 25, serves: 2,
+      tags: ['卵','だし','蒸し物'],
+      ingredients: [
+        { name: '卵', amount: '2個' },
+        { name: 'だし', amount: '300ml' },
+        { name: 'しょうゆ', amount: '小さじ1' },
+        { name: 'みりん', amount: '小さじ1' },
+        { name: '塩', amount: '小さじ1/4' },
+        { name: '鶏もも肉', amount: '少々' },
+        { name: 'しいたけ', amount: '1個' },
+        { name: '三つ葉・銀杏', amount: '少々' },
+      ],
+      steps: [
+        '卵を溶き、冷ましただしと調味料を混ぜ、ざるで濾す。',
+        '器に鶏・しいたけを入れ、卵液を静かに注ぐ。',
+        '蒸し器で弱火15分（竹串を刺して透明な汁が出ればOK）。',
+        '三つ葉と銀杏を添える。',
+      ] },
+
+    { id: 'r37', name: 'わかめと豆腐の味噌汁', emoji: '🍵', cat: '汁物', time: 10, serves: 2,
+      tags: ['味噌','定番','時短'],
+      ingredients: [
+        { name: '絹ごし豆腐', amount: '1/2丁' },
+        { name: '乾燥わかめ', amount: '大さじ1' },
+        { name: 'だし', amount: '500ml' },
+        { name: '味噌', amount: '大さじ2' },
+        { name: '長ねぎ', amount: '少々' },
+      ],
+      steps: [
+        '鍋にだしを温める。',
+        '豆腐を角切り、わかめは水で戻す。',
+        'だしに豆腐とわかめを加え、火が通ったら味噌を溶く。',
+        'ねぎを散らして完成。',
+      ] },
+
+    { id: 'r38', name: 'かき玉汁', emoji: '🍲', cat: '汁物', time: 10, serves: 2,
+      tags: ['卵','だし','時短'],
+      ingredients: [
+        { name: '卵', amount: '2個' },
+        { name: 'だし', amount: '500ml' },
+        { name: 'しょうゆ', amount: '小さじ2' },
+        { name: 'みりん', amount: '小さじ1' },
+        { name: '塩', amount: '少々' },
+        { name: '片栗粉', amount: '小さじ2' },
+        { name: '三つ葉', amount: '少々' },
+      ],
+      steps: [
+        'だしを沸かし、しょうゆ・みりん・塩で味を整える。',
+        '水溶き片栗粉でとろみをつける。',
+        '溶き卵を菜箸で細く回し入れる（花のように散る）。',
+        '三つ葉を散らして完成。',
+      ],
+      note: 'とろみをつけてから卵を流すと、ふわっと花開く。' },
+
+    { id: 'r39', name: 'けんちん汁', emoji: '🥢', cat: '汁物', time: 30, serves: 4,
+      tags: ['根菜','精進','具だくさん'],
+      ingredients: [
+        { name: '大根', amount: '5cm' },
+        { name: 'にんじん', amount: '1/2本' },
+        { name: 'ごぼう', amount: '1/2本' },
+        { name: 'こんにゃく', amount: '1/4枚' },
+        { name: '木綿豆腐', amount: '1/2丁' },
+        { name: '里芋', amount: '2個' },
+        { name: 'しょうゆ', amount: '大さじ2' },
+        { name: 'みりん', amount: '大さじ1' },
+        { name: 'だし', amount: '800ml' },
+        { name: 'ごま油', amount: '大さじ1' },
+      ],
+      steps: [
+        '野菜はいちょう切り、こんにゃくはちぎって下茹で。豆腐は手で崩す。',
+        '鍋にごま油を熱し野菜を炒める。',
+        'だし・こんにゃく・豆腐を加え15分煮る。',
+        'しょうゆ・みりんで味を整える。',
+      ] },
+
+    { id: 'r40', name: 'コーンスープ', emoji: '🌽', cat: '汁物', time: 15, serves: 3,
+      tags: ['洋風','子ども','コーン'],
+      ingredients: [
+        { name: 'コーンクリーム缶', amount: '1缶（190g）' },
+        { name: '牛乳', amount: '300ml' },
+        { name: 'バター', amount: '10g' },
+        { name: '小麦粉', amount: '小さじ2' },
+        { name: '固形コンソメ', amount: '1/2個' },
+        { name: '塩こしょう', amount: '少々' },
+        { name: 'パセリ', amount: '少々' },
+      ],
+      steps: [
+        '鍋にバターを溶かし、小麦粉を加え1分炒める。',
+        '牛乳を少しずつ加え、ダマにならないよう混ぜる。',
+        'コーン缶とコンソメを加え、沸騰しない程度に温める。',
+        '塩こしょうで調え、パセリを散らす。',
+      ] },
+
+    // ─── 主食 · simple staples (for fast meal composition) ───────────────
+    { id: 'r41', name: '白ごはん', emoji: '🍚', cat: '主食', time: 50, serves: 4,
+      tags: ['主食','定番','ごはん'],
+      ingredients: [
+        { name: '米', amount: '2合' },
+        { name: '水', amount: '規定量' },
+      ],
+      steps: [
+        '米を研ぎ、水を切って30分浸水させる。',
+        '炊飯器で炊く（約40分）。',
+        '炊けたら軽く混ぜ、器によそう。',
+      ],
+      note: 'まとめて炊いて冷凍しておくと忙しい日に便利。' },
+
+    { id: 'r42', name: '玄米ごはん', emoji: '🌾', cat: '主食', time: 60, serves: 4,
+      tags: ['玄米','健康','ごはん'],
+      ingredients: [
+        { name: '玄米', amount: '2合' },
+        { name: '水', amount: '米の1.5倍' },
+        { name: '塩', amount: 'ひとつまみ' },
+      ],
+      steps: [
+        '玄米をよく洗い、6時間〜一晩浸水させる。',
+        '塩を加えて炊飯器で炊く（玄米モード推奨）。',
+        '蒸らして器へ。',
+      ] },
+
+    { id: 'r43', name: 'おにぎり（鮭）', emoji: '🍙', cat: '主食', time: 15, serves: 2,
+      tags: ['ごはん','お弁当','朝食','子ども'],
+      ingredients: [
+        { name: 'ごはん', amount: '茶碗2杯分' },
+        { name: '塩鮭', amount: '1切れ' },
+        { name: '塩', amount: '少々' },
+        { name: '焼き海苔', amount: '適量' },
+      ],
+      steps: [
+        '鮭を焼いてほぐし、骨と皮を取り除く。',
+        '手を濡らして塩をつけ、ごはんで鮭を包みながら握る。',
+        '焼き海苔を巻く。',
+      ] },
+
+    { id: 'r44', name: 'トースト（バター）', emoji: '🍞', cat: '主食', time: 5, serves: 1,
+      tags: ['パン','朝食','時短'],
+      ingredients: [
+        { name: '食パン', amount: '1枚' },
+        { name: 'バター', amount: '適量' },
+      ],
+      steps: [
+        '食パンをトースターでこんがり焼く。',
+        '熱いうちにバターを塗る。',
+      ],
+      note: 'お好みでジャム・蜂蜜・ピーナッツバターを。' },
+
+    { id: 'r45', name: 'お味噌汁（基本）', emoji: '🥣', cat: '汁物', time: 10, serves: 3,
+      tags: ['味噌','定番','万能','時短'],
+      ingredients: [
+        { name: 'だし', amount: '600ml' },
+        { name: '味噌', amount: '大さじ2〜3' },
+        { name: 'お好みの具材', amount: '適量' },
+      ],
+      steps: [
+        '鍋にだしを温める。',
+        '豆腐・わかめ・ねぎ・油揚げ・きのこなど、お好みの具材を入れて火を通す。',
+        '火を止める直前に味噌を溶き入れて完成。',
+      ],
+      note: '具材を変えるだけで毎日飽きない。冷蔵庫の残り野菜の整理にもぴったり。' },
+
+    { id: 'r46', name: '納豆ごはん', emoji: '🍚', cat: '主食', time: 3, serves: 1,
+      tags: ['納豆','朝食','時短'],
+      ingredients: [
+        { name: '納豆', amount: '1パック' },
+        { name: 'ごはん', amount: '茶碗1杯' },
+        { name: 'しょうゆ', amount: '少々' },
+        { name: 'ねぎ・からし', amount: 'お好みで' },
+      ],
+      steps: [
+        '納豆を付属のたれとともに混ぜる。',
+        'ごはんにのせて、お好みでしょうゆやねぎを。',
+      ],
+      note: '忙しい朝の強い味方。' },
+
+    // ─── 朝食 & 副菜の軽めメニュー ─────────────────────────
+    { id: 'r47', name: '目玉焼き', emoji: '🍳', cat: '副菜', time: 5, serves: 1,
+      tags: ['卵','朝食','時短'],
+      ingredients: [
+        { name: '卵', amount: '1個' },
+        { name: '塩こしょう', amount: '少々' },
+        { name: '油', amount: '少々' },
+      ],
+      steps: [
+        'フライパンに油を熱し、卵を割り入れる。',
+        '水を大さじ1加え、蓋をして2〜3分蒸し焼き。',
+        '塩こしょうで味付け。',
+      ] },
+
+    { id: 'r48', name: 'スクランブルエッグ', emoji: '🥚', cat: '副菜', time: 5, serves: 2,
+      tags: ['卵','朝食','洋風'],
+      ingredients: [
+        { name: '卵', amount: '3個' },
+        { name: '牛乳', amount: '大さじ2' },
+        { name: '塩こしょう', amount: '少々' },
+        { name: 'バター', amount: '10g' },
+      ],
+      steps: [
+        '卵に牛乳と塩こしょうを混ぜる。',
+        'フライパンにバターを溶かし、卵液を流す。',
+        '弱火で大きくかき混ぜ、半熟で火を止める。',
+      ] },
+
+    { id: 'r49', name: 'フレンチトースト', emoji: '🍞', cat: '主食', time: 15, serves: 2,
+      tags: ['パン','朝食','甘い','子ども'],
+      ingredients: [
+        { name: '食パン', amount: '2枚' },
+        { name: '卵', amount: '2個' },
+        { name: '牛乳', amount: '200ml' },
+        { name: '砂糖', amount: '大さじ2' },
+        { name: 'バター', amount: '10g' },
+        { name: 'メープルシロップ', amount: '適量' },
+      ],
+      steps: [
+        '卵・牛乳・砂糖をバットで混ぜる。',
+        'パンを両面浸す（厚切りなら30分）。',
+        'バターを溶かしたフライパンで両面こんがり焼く。',
+        'シロップをかけて完成。',
+      ] },
+
+    { id: 'r50', name: 'パンケーキ', emoji: '🥞', cat: '主食', time: 20, serves: 2,
+      tags: ['粉もの','朝食','甘い','子ども'],
+      ingredients: [
+        { name: 'ホットケーキミックス', amount: '150g' },
+        { name: '卵', amount: '1個' },
+        { name: '牛乳', amount: '100ml' },
+        { name: 'バター', amount: '適量' },
+        { name: 'メープル・バナナ', amount: 'お好みで' },
+      ],
+      steps: [
+        '卵と牛乳を混ぜ、ミックスを加えてさっくり混ぜる。',
+        'フライパンを中火で温め、生地を丸く流す。',
+        '表面にプツプツ穴が出たら裏返し、2分焼く。',
+        'トッピングを添えて完成。',
+      ] },
+
+    { id: 'r51', name: 'ヨーグルト（フルーツ添え）', emoji: '🥣', cat: '副菜', time: 3, serves: 1,
+      tags: ['乳製品','朝食','果物','時短'],
+      ingredients: [
+        { name: 'プレーンヨーグルト', amount: '100g' },
+        { name: 'お好みのフルーツ', amount: '適量' },
+        { name: '蜂蜜 or グラノーラ', amount: 'お好みで' },
+      ],
+      steps: [
+        '器にヨーグルトを盛る。',
+        'フルーツ・蜂蜜・グラノーラを添える。',
+      ] },
+
+    // ─── 汁物の追加バリエーション ───────────────────────────
+    { id: 'r52', name: '卵スープ（中華風）', emoji: '🍲', cat: '汁物', time: 10, serves: 2,
+      tags: ['卵','中華','時短'],
+      ingredients: [
+        { name: '卵', amount: '1個' },
+        { name: '鶏がらスープ', amount: '400ml' },
+        { name: '塩こしょう', amount: '少々' },
+        { name: '片栗粉', amount: '小さじ2' },
+        { name: 'ごま油', amount: '少々' },
+        { name: '長ねぎ', amount: '少々' },
+      ],
+      steps: [
+        '鍋に鶏がらスープを温め、塩こしょうで味付け。',
+        '水溶き片栗粉でとろみをつける。',
+        '溶き卵を細く回し入れる。',
+        'ごま油とねぎを散らす。',
+      ] },
+
+    { id: 'r53', name: 'コンソメスープ', emoji: '🥄', cat: '汁物', time: 10, serves: 2,
+      tags: ['洋風','子ども','時短'],
+      ingredients: [
+        { name: '水', amount: '400ml' },
+        { name: '固形コンソメ', amount: '1個' },
+        { name: '玉ねぎ', amount: '1/4個' },
+        { name: 'にんじん', amount: '1/4本' },
+        { name: 'パセリ', amount: '少々' },
+      ],
+      steps: [
+        '野菜を小さめに切る。',
+        '鍋に水とコンソメを入れ、野菜を加えて柔らかくなるまで煮る。',
+        'パセリを散らす。',
+      ] },
+
+    { id: 'r54', name: 'きのこのお吸い物', emoji: '🍵', cat: '汁物', time: 10, serves: 2,
+      tags: ['和食','きのこ','あっさり'],
+      ingredients: [
+        { name: 'だし', amount: '400ml' },
+        { name: 'しめじ', amount: '1/2パック' },
+        { name: 'えのき', amount: '1/2袋' },
+        { name: 'しょうゆ', amount: '小さじ1' },
+        { name: '塩', amount: '少々' },
+        { name: '三つ葉', amount: '少々' },
+      ],
+      steps: [
+        'きのこはほぐして下処理。',
+        'だしを温め、きのこを入れて2〜3分煮る。',
+        'しょうゆと塩で味を整え、三つ葉を添える。',
+      ] },
+
+    // ─── 副菜の追加 ────────────────────────────────────────
+    { id: 'r55', name: '冷や奴', emoji: '🧊', cat: '副菜', time: 3, serves: 2,
+      tags: ['豆腐','夏','時短'],
+      ingredients: [
+        { name: '絹ごし豆腐', amount: '1丁' },
+        { name: '薬味（しょうが・ねぎ・鰹節）', amount: '適量' },
+        { name: 'しょうゆ', amount: '適量' },
+      ],
+      steps: [
+        '豆腐を食べやすく切って器へ。',
+        '薬味を添え、しょうゆをかけて完成。',
+      ],
+      note: '暑い日の副菜にぴったり。' },
+
+    { id: 'r56', name: '温野菜サラダ', emoji: '🥗', cat: '副菜', time: 15, serves: 2,
+      tags: ['野菜','健康','蒸す'],
+      ingredients: [
+        { name: 'ブロッコリー', amount: '1/2個' },
+        { name: 'にんじん', amount: '1/2本' },
+        { name: 'じゃがいも', amount: '1個' },
+        { name: 'かぼちゃ', amount: '80g' },
+        { name: 'ドレッシング', amount: 'お好みで' },
+      ],
+      steps: [
+        '野菜を一口大に切る。',
+        '蒸し器または電子レンジで火を通す（レンジは600W 5〜7分）。',
+        '器に盛りドレッシングをかける。',
+      ] },
+
+    { id: 'r57', name: '切り干し大根の煮物', emoji: '🫙', cat: '副菜', time: 25, serves: 4,
+      tags: ['和食','常備菜','乾物'],
+      ingredients: [
+        { name: '切り干し大根', amount: '30g' },
+        { name: 'にんじん', amount: '1/3本' },
+        { name: '油揚げ', amount: '1枚' },
+        { name: 'しょうゆ', amount: '大さじ2' },
+        { name: 'みりん', amount: '大さじ1' },
+        { name: '砂糖', amount: '大さじ1' },
+        { name: 'だし', amount: '200ml' },
+      ],
+      steps: [
+        '切り干し大根を水で戻し、しっかり絞る。',
+        'にんじんと油揚げを細切り。',
+        '鍋で全体を軽く炒め、だしと調味料を加える。',
+        '15分ほど煮て、水分を飛ばす。',
+      ] },
+
+    { id: 'r58', name: 'きゅうりの浅漬け', emoji: '🥒', cat: '副菜', time: 10, serves: 3,
+      tags: ['漬物','常備菜','時短'],
+      ingredients: [
+        { name: 'きゅうり', amount: '2本' },
+        { name: '塩', amount: '小さじ1/2' },
+        { name: 'しょうが', amount: '1かけ' },
+        { name: '昆布', amount: '少々' },
+      ],
+      steps: [
+        'きゅうりを乱切り、しょうがは千切り。',
+        'ポリ袋にすべて入れてよく揉み込む。',
+        '10分以上おいて完成。',
+      ] },
+
+    { id: 'r59', name: '小松菜のナムル', emoji: '🥬', cat: '副菜', time: 10, serves: 2,
+      tags: ['野菜','常備菜','ごま油'],
+      ingredients: [
+        { name: '小松菜', amount: '1束' },
+        { name: 'ごま油', amount: '大さじ1' },
+        { name: 'しょうゆ', amount: '小さじ1' },
+        { name: '塩', amount: '少々' },
+        { name: '白ごま', amount: '少々' },
+        { name: 'にんにく', amount: '少々' },
+      ],
+      steps: [
+        '小松菜を塩茹でし、水気を絞る。',
+        '4cm幅に切り、調味料と和える。',
+        '白ごまをふって完成。',
+      ] },
+
+    { id: 'r60', name: 'トマトとモッツァレラ', emoji: '🍅', cat: '副菜', time: 5, serves: 2,
+      tags: ['洋風','トマト','時短'],
+      ingredients: [
+        { name: 'トマト', amount: '1個' },
+        { name: 'モッツァレラチーズ', amount: '100g' },
+        { name: 'バジル', amount: '少々' },
+        { name: 'オリーブオイル', amount: '大さじ1' },
+        { name: '塩こしょう', amount: '少々' },
+      ],
+      steps: [
+        'トマトとチーズを同じ厚さに切る。',
+        '交互に並べ、バジルを散らす。',
+        'オリーブオイルと塩こしょうで仕上げ。',
+      ] },
+
+    // ─── 主菜・一品 追加バリエーション ─────────────────────
+    { id: 'r61', name: 'ぶりの照り焼き', emoji: '🐟', cat: '主菜', time: 15, serves: 2,
+      tags: ['魚','照り焼き','和食'],
+      ingredients: [
+        { name: 'ぶり', amount: '2切れ' },
+        { name: '塩', amount: '少々' },
+        { name: '小麦粉', amount: '大さじ1' },
+        { name: 'しょうゆ', amount: '大さじ2' },
+        { name: 'みりん', amount: '大さじ2' },
+        { name: '酒', amount: '大さじ1' },
+        { name: '砂糖', amount: '大さじ1' },
+      ],
+      steps: [
+        'ぶりに塩をふり10分おき、水気を拭く。',
+        '小麦粉を薄くまぶし、油を熱したフライパンで両面を焼く。',
+        '合わせ調味料を加え、煮絡めて照りを出す。',
+      ] },
+
+    { id: 'r62', name: '豚肉とキャベツの味噌炒め', emoji: '🥢', cat: '主菜', time: 15, serves: 2,
+      tags: ['豚肉','キャベツ','味噌','時短'],
+      ingredients: [
+        { name: '豚バラ薄切り', amount: '200g' },
+        { name: 'キャベツ', amount: '1/4個' },
+        { name: 'ピーマン', amount: '2個' },
+        { name: '味噌', amount: '大さじ2' },
+        { name: '砂糖', amount: '大さじ1' },
+        { name: '酒', amount: '大さじ1' },
+        { name: 'しょうゆ', amount: '小さじ1' },
+        { name: 'にんにく', amount: '少々' },
+      ],
+      steps: [
+        '野菜を一口大に切る。',
+        'フライパンで豚肉を炒め、にんにくを加える。',
+        'キャベツとピーマンを加え、しんなりしたら合わせ味噌を絡める。',
+      ] },
+
+    { id: 'r63', name: '焼きうどん', emoji: '🍜', cat: '一品', time: 15, serves: 2,
+      tags: ['麺','野菜たっぷり','時短'],
+      ingredients: [
+        { name: 'うどん', amount: '2玉' },
+        { name: '豚バラ', amount: '100g' },
+        { name: 'キャベツ', amount: '2枚' },
+        { name: 'にんじん', amount: '1/3本' },
+        { name: '玉ねぎ', amount: '1/4個' },
+        { name: 'しょうゆ', amount: '大さじ2' },
+        { name: 'めんつゆ', amount: '大さじ1' },
+        { name: '鰹節', amount: '適量' },
+      ],
+      steps: [
+        '野菜を細切り、豚肉は一口大。',
+        'フライパンで豚肉を炒め、野菜を加える。',
+        'ほぐしたうどんを加え、しょうゆとめんつゆで味付け。',
+        '器に盛り鰹節をかける。',
+      ] },
+
+    { id: 'r64', name: '焼き餃子', emoji: '🥟', cat: '主菜', time: 40, serves: 3,
+      tags: ['中華','餃子','子ども','家族で'],
+      ingredients: [
+        { name: '豚ひき肉', amount: '200g' },
+        { name: 'キャベツ', amount: '150g' },
+        { name: 'ニラ', amount: '1/2束' },
+        { name: 'にんにく・しょうが', amount: '各少々' },
+        { name: 'しょうゆ', amount: '大さじ1' },
+        { name: 'ごま油', amount: '大さじ1' },
+        { name: '酒', amount: '大さじ1' },
+        { name: '塩', amount: '小さじ1/4' },
+        { name: '餃子の皮', amount: '24枚' },
+      ],
+      steps: [
+        'キャベツ・ニラをみじん切り、塩で揉んで水気を絞る。',
+        '豚肉に野菜と調味料を加え、粘りが出るまで練る。',
+        '皮で包む（ヒダを寄せて閉じる）。',
+        'フライパンに油を引き並べ、焼き色が付いたら水50mlを加え蓋をして5分蒸し焼き。',
+        '蓋を取り水分を飛ばし、ごま油を回しかけて仕上げ。',
+      ] },
+
+    { id: 'r65', name: '鶏胸肉のピカタ', emoji: '🍗', cat: '主菜', time: 15, serves: 2,
+      tags: ['鶏肉','洋風','チーズ','時短'],
+      ingredients: [
+        { name: '鶏胸肉', amount: '1枚（300g）' },
+        { name: '塩こしょう', amount: '少々' },
+        { name: '小麦粉', amount: '大さじ2' },
+        { name: '卵', amount: '1個' },
+        { name: 'パルメザンチーズ', amount: '大さじ2' },
+        { name: 'オリーブオイル', amount: '大さじ1' },
+        { name: 'レモン', amount: '1/4個' },
+      ],
+      steps: [
+        '鶏胸肉をそぎ切りにし、塩こしょうをふる。',
+        '小麦粉をまぶし、溶き卵にチーズを混ぜた液にくぐらせる。',
+        'オリーブオイルを熱したフライパンで両面を焼く（各3分）。',
+        'レモンを添える。',
+      ],
+      note: '淡白な胸肉もチーズ衣でしっとり仕上がる。' },
+];
+
+// ══════════════════════════════════════════════════════════════════
+// RECIPE IMAGE KEYWORDS — English tags drive a real-photo lookup
+// via Loremflickr (CC-licensed Flickr photos, no API key, no account).
+// Override per-recipe via this map; fallback to recipe.name otherwise.
+// ══════════════════════════════════════════════════════════════════
+const IMG_QUERY = {
+    r01: 'salmon grilled', r02: 'ginger pork', r03: 'teriyaki chicken',
+    r04: 'japanese hamburger steak', r05: 'karaage fried chicken', r06: 'salmon meuniere',
+    r07: 'pork belly daikon', r08: 'oyakodon', r09: 'gyudon beef bowl',
+    r10: 'chicken soboro donburi', r11: 'omurice', r12: 'japanese curry rice',
+    r13: 'cream stew', r14: 'okonomiyaki', r15: 'nikujaga',
+    r16: 'kinpira gobo', r17: 'hijiki simmered', r18: 'kabocha nimono',
+    r19: 'tamagoyaki', r20: 'tonjiru', r21: 'saba miso',
+    r22: 'sweet sour chicken', r23: 'nikudofu', r24: 'mapo tofu',
+    r25: 'tonkatsu', r26: 'chicken nanban', r27: 'shrimp broccoli',
+    r28: 'chicken cream stew', r29: 'fried rice', r30: 'salmon rice',
+    r31: 'chirashi sushi', r32: 'spinach ohitashi', r33: 'japanese potato salad',
+    r34: 'chikuzenni', r35: 'shiraae', r36: 'chawanmushi',
+    r37: 'miso soup tofu', r38: 'egg drop soup', r39: 'kenchinjiru',
+    r40: 'corn soup', r41: 'steamed rice', r42: 'brown rice',
+    r43: 'onigiri', r44: 'buttered toast', r45: 'miso soup',
+    r46: 'natto rice', r47: 'sunny side up egg', r48: 'scrambled egg',
+    r49: 'french toast', r50: 'pancake', r51: 'yogurt fruit',
+    r52: 'egg drop soup chinese', r53: 'consomme soup', r54: 'mushroom clear soup',
+    r55: 'hiyayakko tofu', r56: 'steamed vegetables', r57: 'kiriboshi daikon',
+    r58: 'japanese pickled cucumber', r59: 'komatsuna namul', r60: 'caprese salad',
+    r61: 'yellowtail teriyaki', r62: 'pork cabbage miso', r63: 'yakiudon',
+    r64: 'gyoza', r65: 'chicken piccata',
+};
+
+function recipeImageUrl(recipe) {
+    const q = IMG_QUERY[recipe.id] || recipe.name;
+    const seed = (recipe.id || '').replace(/\D/g, '') || '1';
+    // Tags separated by comma → Flickr multi-tag search. Lock = deterministic.
+    const tagStr = `${q},japanese,food`.replace(/\s+/g, ' ').trim();
+    return `https://loremflickr.com/600/400/${encodeURIComponent(tagStr)}?lock=${seed}`;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// STATE + PERSISTENCE
+// ══════════════════════════════════════════════════════════════════
+const STORAGE_KEY         = 'mekuri.v1';
+const PROFILE_KEY         = 'mekuri.profile.v1';
+
+// ══════════════════════════════════════════════════════════════════
+// FAMILY PROFILE — used by "ひらめき" to tailor suggestions.
+// Age bands map to recipe suitability via simple tag rules.
+// ══════════════════════════════════════════════════════════════════
+const FAMILY_MEMBERS = [
+    { key: 'baby',     label: '赤ちゃん', sub: '0〜1歳',  emoji: '👶' },
+    { key: 'toddler',  label: '幼児',    sub: '1〜3歳',  emoji: '🧒' },
+    { key: 'preschool',label: '園児',    sub: '3〜6歳',  emoji: '🧑‍🍼' },
+    { key: 'school',   label: '小学生',  sub: '6〜12歳', emoji: '👧' },
+    { key: 'teen',     label: '中高生',  sub: '12〜18歳',emoji: '🧑' },
+    { key: 'adult',    label: '大人',    sub: '18歳〜',  emoji: '🧓' },
+];
+
+// profile.members is now a count map: { baby: 1, toddler: 2, adult: 2, ... }
+// Migrates the legacy array format ['baby','adult'] → { baby: 1, adult: 1 }
+function emptyMemberCounts() {
+    const out = {};
+    for (const m of FAMILY_MEMBERS) out[m.key] = 0;
+    return out;
+}
+let profile = (() => {
+    try {
+        const raw = localStorage.getItem(PROFILE_KEY);
+        if (raw) {
+            const p = JSON.parse(raw);
+            const members = emptyMemberCounts();
+            if (Array.isArray(p.members)) {
+                // legacy format — convert to counts (each key => 1)
+                for (const k of p.members) if (k in members) members[k] = 1;
+            } else if (p.members && typeof p.members === 'object') {
+                for (const k of Object.keys(p.members)) {
+                    if (k in members) members[k] = Math.max(0, Math.min(20, parseInt(p.members[k], 10) || 0));
+                }
+            }
+            return { members, completed: !!p.completed };
+        }
+    } catch {}
+    return { members: emptyMemberCounts(), completed: false };
+})();
+
+function saveProfile() {
+    try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch {}
+}
+
+function totalFamilyCount() {
+    return Object.values(profile.members).reduce((a, b) => a + b, 0);
+}
+
+// Infer if a recipe fits the youngest present family member.
+//   · baby (<1y)      → only very gentle dishes — most home recipes excluded.
+//   · toddler (1-3y)  → avoid 揚げ物, 生もの, 辛, 骨あり魚.
+//   · preschool+      → most OK except raw/spicy.
+function youngestKey() {
+    for (const m of FAMILY_MEMBERS) {
+        if ((profile.members[m.key] || 0) > 0) return m.key;
+    }
+    return null;
+}
+function recipeFits(recipe) {
+    const y = youngestKey();
+    if (!y) return true;
+    const tags = recipe.tags || [];
+    const hasTag = (t) => tags.includes(t);
+    const hasSpicy = hasTag('辛') || /辛/.test(recipe.name);
+    const hasRaw   = hasTag('生') || recipe.name.includes('寿司') || recipe.name.includes('刺身');
+    const hasFried = hasTag('揚げ物');
+    const hasWholeFish = /骨/.test(recipe.name);
+    switch (y) {
+        case 'baby':
+            // For under 1y, most adult recipes don't fit.
+            return hasTag('子ども') && !hasSpicy && !hasRaw && !hasFried && recipe.cat === '副菜';
+        case 'toddler':
+            return !hasSpicy && !hasRaw && !hasWholeFish;
+        case 'preschool':
+            return !hasSpicy && !hasRaw;
+        case 'school':
+            return !hasRaw || hasTag('子ども');  // raw only if explicitly family-friendly
+        case 'teen':
+        case 'adult':
+        default:
+            return true;
+    }
+}
+
+const DAYS = [
+    { key: 'mon', label: '月', full: '月曜日' },
+    { key: 'tue', label: '火', full: '火曜日' },
+    { key: 'wed', label: '水', full: '水曜日' },
+    { key: 'thu', label: '木', full: '木曜日' },
+    { key: 'fri', label: '金', full: '金曜日' },
+    { key: 'sat', label: '土', full: '土曜日' },
+    { key: 'sun', label: '日', full: '日曜日' },
+];
+const MEALS = [
+    { key: 'breakfast', label: '朝', full: '朝ごはん', emoji: '🌅', bg: 'bg-sky-50',    border: 'border-sky-200' },
+    { key: 'lunch',     label: '昼', full: 'お昼ごはん', emoji: '☀️', bg: 'bg-amber-50',  border: 'border-amber-200' },
+    { key: 'dinner',    label: '夜', full: '晩ごはん',   emoji: '🌙', bg: 'bg-indigo-50', border: 'border-indigo-200' },
+];
+
+// Each meal slot is an ARRAY of recipe IDs (supports 主菜 + 副菜 + 汁物 + ...)
+function emptyMenu() {
+    const m = {};
+    for (const d of DAYS) m[d.key] = { breakfast: [], lunch: [], dinner: [] };
+    return m;
+}
+
+// Migrate legacy format (single id or null per slot) → new array format.
+// Also accepts the new format untouched. Skips unknown recipe IDs.
+function migrateMenu(src) {
+    const out = emptyMenu();
+    if (!src || typeof src !== 'object') return out;
+    for (const d of DAYS) {
+        const day = src[d.key] || {};
+        for (const meal of MEALS) {
+            const v = day[meal.key];
+            if (Array.isArray(v)) {
+                out[d.key][meal.key] = v.filter(id => RECIPES.find(r => r.id === id));
+            } else if (typeof v === 'string' && RECIPES.find(r => r.id === v)) {
+                out[d.key][meal.key] = [v];
+            } // empty / null / unknown → []
+        }
+    }
+    return out;
+}
+
+let state = (() => {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+            const s = JSON.parse(raw);
+            return {
+                favs:  Array.isArray(s.favs)  ? s.favs  : [],
+                menu:  migrateMenu(s.menu),
+                saved: (Array.isArray(s.saved) ? s.saved : []).map(item => ({
+                    ...item,
+                    menu: migrateMenu(item.menu),
+                })),
+            };
+        }
+    } catch {}
+    return { favs: [], menu: emptyMenu(), saved: [] };
+})();
+
+function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+}
+
+// ══════════════════════════════════════════════════════════════════
+// UTILITIES
+// ══════════════════════════════════════════════════════════════════
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+const byId = (id) => RECIPES.find(r => r.id === id);
+const isFav = (id) => state.favs.includes(id);
+
+function toast(msg) {
+    const t = $('#toast');
+    t.textContent = msg;
+    t.classList.remove('hidden');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => t.classList.add('hidden'), 1800);
+}
+
+function todayDayKey() {
+    const jsDay = new Date().getDay(); // 0=Sun..6=Sat
+    return ['sun','mon','tue','wed','thu','fri','sat'][jsDay];
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RECIPE ROW HELPERS
+// ══════════════════════════════════════════════════════════════════
+function recipeRow(r, options = {}) {
+    const { onClick, showStar = true } = options;
+    const row = document.createElement('div');
+    row.className = 'group flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-hover cursor-pointer text-sm';
+    row.innerHTML = `
+        <span class="text-base shrink-0" aria-hidden="true">${r.emoji}</span>
+        <span class="flex-1 truncate">${r.name}</span>
+        <span class="text-[10px] text-muted tabular-nums">${r.time}分</span>
+        ${showStar ? `<button class="star-btn text-base leading-none shrink-0
+                       ${isFav(r.id) ? 'text-star' : 'text-border group-hover:text-muted'}"
+                       data-star="${r.id}" title="お気に入り">★</button>` : ''}
+    `;
+    row.querySelector('.star-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleFav(r.id, e.currentTarget);
+    });
+    row.addEventListener('click', (e) => {
+        if (e.target.matches('.star-btn')) return;
+        if (onClick) onClick(r);
+    });
+    return row;
+}
+
+function toggleFav(id, btn) {
+    const i = state.favs.indexOf(id);
+    if (i === -1) {
+        state.favs.push(id);
+        toast('★ お気に入りに追加');
+    } else {
+        state.favs.splice(i, 1);
+        toast('☆ お気に入りから削除');
+    }
+    save();
+    if (btn) btn.classList.add('star-pulse');
+    renderAll();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RENDERERS
+// ══════════════════════════════════════════════════════════════════
+function renderSidebar() {
+    const searchTerm = ($('#search')?.value || '').trim().toLowerCase();
+    const match = (r) => !searchTerm ||
+        r.name.toLowerCase().includes(searchTerm) ||
+        r.cat.toLowerCase().includes(searchTerm) ||
+        r.tags.some(t => t.toLowerCase().includes(searchTerm));
+
+    // Favorites
+    const favList = $('#favList');
+    const favEmpty = $('#favEmpty');
+    favList.innerHTML = '';
+    const favs = state.favs.map(byId).filter(Boolean).filter(match);
+    if (favs.length === 0) {
+        favEmpty.classList.remove('hidden');
+    } else {
+        favEmpty.classList.add('hidden');
+        for (const r of favs) {
+            favList.appendChild(recipeRow(r, {
+                onClick: (rec) => beginPickForRecipe(rec)
+            }));
+        }
+    }
+    $('#favCount').textContent = state.favs.length ? `${state.favs.length} 件` : '';
+
+    // Catalog
+    const catList = $('#catList');
+    catList.innerHTML = '';
+    const filtered = RECIPES.filter(match);
+    // Group by category
+    const groups = {};
+    for (const r of filtered) {
+        (groups[r.cat] = groups[r.cat] || []).push(r);
+    }
+    const catOrder = ['主菜', '丼もの', '一品', '副菜', '汁物'];
+    for (const cat of catOrder) {
+        if (!groups[cat]) continue;
+        const h = document.createElement('div');
+        h.className = 'text-[10px] font-medium text-muted tracking-wider px-2 pt-2 pb-0.5';
+        h.textContent = cat;
+        catList.appendChild(h);
+        for (const r of groups[cat]) {
+            catList.appendChild(recipeRow(r, {
+                onClick: (rec) => beginPickForRecipe(rec)
+            }));
+        }
+    }
+    $('#catCount').textContent = `${RECIPES.length} 件`;
+}
+
+function renderWeek() {
+    renderTodayCard();   // today card is a view of the same state — keep it in sync
+    const grid = $('#weekGrid');
+    grid.innerHTML = '';
+    const today = todayDayKey();
+    for (const day of DAYS) {
+        const col = document.createElement('div');
+        col.className = 'border border-border rounded-lg bg-paper overflow-hidden' +
+                        (day.key === today ? ' today-marker' : '');
+        col.innerHTML = `
+            <div class="px-3 py-2 text-xs font-medium text-sub tracking-wider bg-hover border-b border-border
+                        flex items-center justify-between">
+                <span>${day.label}</span>
+                ${day.key === today ? '<span class="text-[9px] text-accent tracking-widest">TODAY</span>' : ''}
+            </div>
+            <div class="p-2 space-y-2"></div>
+        `;
+        const inner = col.querySelector('.p-2');
+        for (const meal of MEALS) {
+            inner.appendChild(slotEl(day.key, meal.key));
+        }
+        grid.appendChild(col);
+    }
+}
+
+function slotEl(dayKey, mealKey) {
+    const dishes = state.menu[dayKey]?.[mealKey] || [];
+    const meal = MEALS.find(m => m.key === mealKey);
+    const el = document.createElement('div');
+
+    if (dishes.length === 0) {
+        el.className = `slot-empty flex flex-col items-center justify-center gap-1 p-3 rounded-md border border-dashed border-border
+                        cursor-pointer text-muted hover:text-ink min-h-[84px]`;
+        el.innerHTML = `
+            <span class="text-[10px] tracking-wider">${meal.emoji} ${meal.label}</span>
+            <span class="text-xs">+ 献立を組む</span>
+        `;
+    } else {
+        el.className = `slot-filled group flex flex-col gap-1 p-2.5 rounded-md border ${meal.bg} ${meal.border} cursor-pointer hover:border-ink transition min-h-[84px]`;
+        // Show ALL dishes — no truncation
+        const preview = dishes.map(id => {
+            const r = byId(id);
+            if (!r) return '';
+            return `<div class="flex items-center gap-1 text-[11px] leading-tight">
+                      <span class="text-[13px] leading-none shrink-0">${r.emoji}</span>
+                      <span class="truncate">${r.name}</span>
+                    </div>`;
+        }).join('');
+        el.innerHTML = `
+            <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[10px] font-medium text-sub tracking-wider">${meal.emoji} ${meal.label}</span>
+                <span class="text-[10px] text-muted tabular-nums">${dishes.length}品</span>
+            </div>
+            ${preview}
+        `;
+    }
+    el.addEventListener('click', () => openComposer(dayKey, mealKey));
+    return el;
+}
+
+function renderSaved() {
+    const list = $('#savedList');
+    const empty = $('#savedEmpty');
+    list.innerHTML = '';
+    if (!state.saved.length) {
+        empty.classList.remove('hidden');
+        return;
+    }
+    empty.classList.add('hidden');
+    for (const m of state.saved) {
+        const filled = countFilled(m.menu);
+        const chip = document.createElement('div');
+        chip.className = 'group inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 border border-border rounded-full text-xs bg-paper hover:border-ink hover:bg-hover transition cursor-pointer';
+        chip.innerHTML = `
+            <span class="font-medium">${m.name}</span>
+            <span class="text-[10px] text-muted tabular-nums">${filled}/${TOTAL_MEAL_SLOTS}</span>
+            <button class="text-muted hover:text-accent text-sm leading-none opacity-0 group-hover:opacity-100 transition ml-1 w-5 h-5 flex items-center justify-center rounded-full hover:bg-orange-50"
+                    data-del title="削除">×</button>
+        `;
+        chip.addEventListener('click', (e) => {
+            if (e.target.matches('[data-del]')) return;
+            loadSavedMenu(m.id);
+        });
+        chip.querySelector('[data-del]').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!confirm(`「${m.name}」を削除しますか？`)) return;
+            state.saved = state.saved.filter(x => x.id !== m.id);
+            save();
+            renderSaved();
+            toast('削除しました');
+        });
+        list.appendChild(chip);
+    }
+}
+
+// Count meal slots that have at least one dish (for saved-menu badges).
+function countFilled(menu) {
+    let n = 0;
+    for (const d of DAYS) for (const m of MEALS) {
+        if ((menu[d.key]?.[m.key] || []).length > 0) n++;
+    }
+    return n;
+}
+const TOTAL_MEAL_SLOTS = DAYS.length * MEALS.length;   // 7 × 3 = 21
+
+function renderAll() {
+    renderSidebar();
+    renderWeek();
+    renderSaved();
+    renderTodayCard();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// TODAY CARD — 日めくり style calendar page for today's meals
+// ══════════════════════════════════════════════════════════════════
+function renderTodayCard() {
+    const now = new Date();
+    const dayKey = ['sun','mon','tue','wed','thu','fri','sat'][now.getDay()];
+    const day = DAYS.find(d => d.key === dayKey);
+
+    $('#todayDateNum').textContent   = now.getDate();
+    $('#todayDateLabel').textContent = `${now.getMonth() + 1}月 · ${day.full}`;
+
+    const slots = [
+        { meal: 'breakfast', target: '#todayBreakfast' },
+        { meal: 'lunch',     target: '#todayLunch' },
+        { meal: 'dinner',    target: '#todayDinner' },
+    ];
+    for (const s of slots) {
+        const wrap = $(s.target);
+        wrap.innerHTML = '';
+        const dishes = state.menu[dayKey][s.meal] || [];
+        if (!dishes.length) {
+            wrap.innerHTML = `<div class="today-meal-empty">— 未定 —</div>`;
+            continue;
+        }
+        for (const rid of dishes) {
+            const r = byId(rid);
+            if (!r) continue;
+            const row = document.createElement('div');
+            row.className = 'today-meal-item';
+            row.innerHTML = `
+                <span class="text-lg leading-none shrink-0" aria-hidden="true">${r.emoji}</span>
+                <span class="flex-1 truncate">${r.name}</span>
+                <span class="text-[10px] text-muted tabular-nums">${r.time}分</span>
+            `;
+            row.addEventListener('click', () => openDetail(r));
+            wrap.appendChild(row);
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// PICKER MODAL
+// ══════════════════════════════════════════════════════════════════
+let pickerContext = null; // { dayKey, mealKey }
+let pickerTab = 'all';
+
+function openPicker(dayKey, mealKey) {
+    pickerContext = { dayKey, mealKey };
+    pickerTab = 'all';
+    const day = DAYS.find(d => d.key === dayKey);
+    const meal = MEALS.find(m => m.key === mealKey);
+    $('#pickerSlotLabel').textContent = `${day.full} · ${meal.label}`;
+    setPickerTab('all');
+    $('#pickerSearch').value = '';
+    $('#pickerModal').classList.remove('hidden');
+    $('#pickerModal').setAttribute('aria-hidden', 'false');
+    setTimeout(() => $('#pickerSearch').focus(), 50);
+}
+
+function closePicker() {
+    $('#pickerModal').classList.add('hidden');
+    $('#pickerModal').setAttribute('aria-hidden', 'true');
+    pickerContext = null;
+}
+
+function setPickerTab(tab) {
+    pickerTab = tab;
+    $$('.picker-tab').forEach(b => {
+        const active = b.dataset.tab === tab;
+        b.classList.toggle('border-ink', active);
+        b.classList.toggle('text-ink', active);
+        b.classList.toggle('border-transparent', !active);
+        b.classList.toggle('text-muted', !active);
+    });
+    renderPickerList();
+}
+
+function renderPickerList() {
+    const term = $('#pickerSearch').value.trim().toLowerCase();
+    const pool = pickerTab === 'fav'
+        ? state.favs.map(byId).filter(Boolean)
+        : RECIPES;
+    const filtered = term
+        ? pool.filter(r =>
+            r.name.toLowerCase().includes(term) ||
+            r.cat.toLowerCase().includes(term) ||
+            r.tags.some(t => t.toLowerCase().includes(term)))
+        : pool;
+
+    const list = $('#pickerList');
+    list.innerHTML = '';
+    if (!filtered.length) {
+        list.innerHTML = `<p class="px-4 py-10 text-center text-xs text-muted">
+            ${pickerTab === 'fav' ? '★ お気に入りがまだありません' : '該当するレシピがありません'}
+        </p>`;
+        return;
+    }
+
+    // Search active → flat list (so all matches are visible at once)
+    if (term) {
+        for (const r of filtered) {
+            list.appendChild(recipeRow(r, { onClick: (rec) => assignAndClose(rec.id) }));
+        }
+        return;
+    }
+
+    // No search → group by category with sticky headers
+    const groups = {};
+    for (const r of filtered) {
+        (groups[r.cat] = groups[r.cat] || []).push(r);
+    }
+    const catOrder = ['主食', '主菜', '丼もの', '一品', '副菜', '汁物'];
+    for (const cat of catOrder) {
+        if (!groups[cat]) continue;
+        const h = document.createElement('div');
+        h.className = 'sticky top-0 z-10 bg-paper/95 backdrop-blur-sm text-[10px] font-semibold text-muted tracking-[0.2em] uppercase px-3 pt-2 pb-1 border-b border-border';
+        h.innerHTML = `<span class="text-accent mr-1.5">◆</span>${cat} <span class="text-muted/60 tabular-nums ml-1">${groups[cat].length}</span>`;
+        list.appendChild(h);
+        for (const r of groups[cat]) {
+            list.appendChild(recipeRow(r, { onClick: (rec) => assignAndClose(rec.id) }));
+        }
+    }
+}
+
+function assignAndClose(recipeId) {
+    if (!pickerContext) return;
+    const { dayKey, mealKey, fromComposer } = pickerContext;
+    state.menu[dayKey][mealKey].push(recipeId);
+    save();
+    renderWeek();
+    const rec = byId(recipeId);
+
+    if (fromComposer) {
+        // Return to composer, keep it open
+        closePicker();
+        $('#composerModal').classList.remove('hidden');
+        renderComposer();
+        toast(`${rec.emoji} ${rec.name} を追加`);
+    } else {
+        closePicker();
+        const meal = MEALS.find(m => m.key === mealKey);
+        toast(`${rec.emoji} ${rec.name} を ${meal.label} に追加`);
+    }
+}
+
+// Sidebar click: opens the detail modal so users can read ingredients/steps.
+// From the detail modal the user can add to the first empty meal slot.
+function beginPickForRecipe(recipe) {
+    openDetail(recipe, { mode: 'catalog' });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// MEAL COMPOSER MODAL — drill-down view for a single meal slot
+// Build a meal from multiple dishes. Reorderable, removable.
+// ══════════════════════════════════════════════════════════════════
+let composerContext = null;   // { dayKey, mealKey }
+
+function openComposer(dayKey, mealKey) {
+    composerContext = { dayKey, mealKey };
+    const day  = DAYS.find(d => d.key === dayKey);
+    const meal = MEALS.find(m => m.key === mealKey);
+    $('#composerMealEmoji').textContent = meal.emoji;
+    $('#composerTitle').textContent     = `${day.full} · ${meal.full}`;
+    $('#composerSubtitle').textContent  = '主食 · 主菜 · 副菜 · 汁物 — 何品でも';
+    renderComposer();
+    $('#composerModal').classList.remove('hidden');
+    $('#composerModal').setAttribute('aria-hidden', 'false');
+}
+
+function closeComposer() {
+    $('#composerModal').classList.add('hidden');
+    $('#composerModal').setAttribute('aria-hidden', 'true');
+    composerContext = null;
+}
+
+function renderComposer() {
+    if (!composerContext) return;
+    const { dayKey, mealKey } = composerContext;
+    const dishes = state.menu[dayKey][mealKey];
+    const list = $('#composerList');
+    list.innerHTML = '';
+
+    if (!dishes.length) {
+        list.innerHTML = `
+            <div class="text-center py-12 text-muted text-sm">
+                <div class="text-4xl mb-3">🍽️</div>
+                <p>まだレシピがありません。</p>
+                <p class="text-xs mt-1">下のボタンから追加できます。</p>
+            </div>
+        `;
+        return;
+    }
+
+    dishes.forEach((id, idx) => {
+        const r = byId(id);
+        if (!r) return;
+        const card = document.createElement('div');
+        card.className = 'group flex items-center gap-2 p-3 bg-white border border-border rounded-md hover:border-ink/40 transition';
+        card.innerHTML = `
+            <div class="flex flex-col gap-1 shrink-0">
+                <button class="w-6 h-5 flex items-center justify-center text-muted hover:text-ink hover:bg-hover rounded text-[10px] leading-none disabled:opacity-20 disabled:hover:bg-transparent"
+                        ${idx === 0 ? 'disabled' : ''} data-up title="上へ">▲</button>
+                <button class="w-6 h-5 flex items-center justify-center text-muted hover:text-ink hover:bg-hover rounded text-[10px] leading-none disabled:opacity-20 disabled:hover:bg-transparent"
+                        ${idx === dishes.length - 1 ? 'disabled' : ''} data-down title="下へ">▼</button>
+            </div>
+            <span class="text-2xl leading-none shrink-0">${r.emoji}</span>
+            <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium truncate">${r.name}</div>
+                <div class="text-[10px] text-muted tracking-wider mt-0.5">${r.cat} · ${r.time}分</div>
+            </div>
+            <button class="w-7 h-7 flex items-center justify-center text-muted hover:text-ink hover:bg-hover rounded transition text-sm shrink-0"
+                    data-info title="詳細">👁</button>
+            <button class="w-7 h-7 flex items-center justify-center text-muted hover:text-accent hover:bg-orange-50 rounded transition text-base leading-none shrink-0"
+                    data-remove title="削除">×</button>
+        `;
+        card.querySelector('[data-up]').addEventListener('click', () => moveDish(idx, -1));
+        card.querySelector('[data-down]').addEventListener('click', () => moveDish(idx, 1));
+        card.querySelector('[data-info]').addEventListener('click', () => openDetail(r));
+        card.querySelector('[data-remove]').addEventListener('click', () => removeDish(idx));
+        list.appendChild(card);
+    });
+}
+
+function moveDish(idx, dir) {
+    if (!composerContext) return;
+    const { dayKey, mealKey } = composerContext;
+    const dishes = state.menu[dayKey][mealKey];
+    const tgt = idx + dir;
+    if (tgt < 0 || tgt >= dishes.length) return;
+    [dishes[idx], dishes[tgt]] = [dishes[tgt], dishes[idx]];
+    save();
+    renderWeek();
+    renderComposer();
+}
+
+function removeDish(idx) {
+    if (!composerContext) return;
+    const { dayKey, mealKey } = composerContext;
+    const dish = byId(state.menu[dayKey][mealKey][idx]);
+    state.menu[dayKey][mealKey].splice(idx, 1);
+    save();
+    renderWeek();
+    renderComposer();
+    if (dish) toast(`${dish.emoji} ${dish.name} を外しました`);
+}
+
+function composerOpenPicker() {
+    if (!composerContext) return;
+    const { dayKey, mealKey } = composerContext;
+    // Temporarily hide composer while picker is open
+    $('#composerModal').classList.add('hidden');
+    pickerContext = { dayKey, mealKey, fromComposer: true };
+    const day  = DAYS.find(d => d.key === dayKey);
+    const meal = MEALS.find(m => m.key === mealKey);
+    $('#pickerSlotLabel').textContent = `${day.full} · ${meal.full} に追加`;
+    setPickerTab('all');
+    $('#pickerSearch').value = '';
+    $('#pickerModal').classList.remove('hidden');
+    $('#pickerModal').setAttribute('aria-hidden', 'false');
+    setTimeout(() => $('#pickerSearch').focus(), 50);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RECIPE DETAIL MODAL — shows ingredients + steps + optional register CTA
+// ══════════════════════════════════════════════════════════════════
+let detailContext = null;   // { recipe, mode: 'catalog'|'composer'|'slot', dayKey?, mealKey? }
+
+function openDetail(recipe, ctx = null) {
+    detailContext = { recipe, mode: (ctx && ctx.mode) || 'catalog', ...(ctx || {}) };
+
+    $('#detailEmoji').textContent = recipe.emoji;
+    $('#detailName').textContent  = recipe.name;
+    $('#detailMeta').textContent  = `${recipe.cat}  ·  ${recipe.time}分`;
+    $('#detailServes').textContent = recipe.serves ? `(${recipe.serves}人分)` : '';
+
+    // Load hero photo (lazy, with graceful fallback)
+    loadRecipePhoto(recipe);
+
+    // Ingredients
+    const ing = $('#detailIngredients');
+    ing.innerHTML = '';
+    for (const i of (recipe.ingredients || [])) {
+        const li = document.createElement('li');
+        li.className = 'flex items-baseline justify-between gap-4 border-b border-border/60 pb-1.5';
+        li.innerHTML = `<span class="text-ink">${i.name}</span><span class="text-muted text-xs tabular-nums whitespace-nowrap">${i.amount}</span>`;
+        ing.appendChild(li);
+    }
+
+    // Steps
+    const steps = $('#detailSteps');
+    steps.innerHTML = '';
+    (recipe.steps || []).forEach((step, i) => {
+        const li = document.createElement('li');
+        li.className = 'flex gap-3';
+        li.innerHTML = `
+            <span class="w-6 h-6 bg-ink text-white rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 tabular-nums">${i + 1}</span>
+            <span class="flex-1 leading-relaxed text-ink">${step}</span>
+        `;
+        steps.appendChild(li);
+    });
+
+    // Note (if any)
+    if (recipe.note) {
+        $('#detailNoteBox').classList.remove('hidden');
+        $('#detailNote').textContent = recipe.note;
+    } else {
+        $('#detailNoteBox').classList.add('hidden');
+    }
+
+    // Tags
+    $('#detailTags').innerHTML = (recipe.tags || [])
+        .map(t => `<span class="text-[10px] text-muted bg-hover px-2 py-0.5 rounded-full">${t}</span>`)
+        .join('');
+
+    // Footer (context-aware)
+    renderDetailFooter();
+
+    $('#detailModal').classList.remove('hidden');
+    $('#detailModal').setAttribute('aria-hidden', 'false');
+}
+
+function closeDetail() {
+    $('#detailModal').classList.add('hidden');
+    $('#detailModal').setAttribute('aria-hidden', 'true');
+    detailContext = null;
+}
+
+// Fetch a real photo via Loremflickr (CC-licensed Flickr), with loading and fallback.
+function loadRecipePhoto(recipe) {
+    const img       = $('#detailImg');
+    const loading   = $('#detailImgLoading');
+    const fallback  = $('#detailImgFallback');
+    const fbEmoji   = $('#detailImgFallbackEmoji');
+
+    // Reset visual state for each open
+    img.classList.add('opacity-0');
+    img.classList.remove('opacity-100');
+    loading.classList.remove('hidden');
+    fallback.classList.add('hidden');
+    fallback.classList.remove('flex');
+    fbEmoji.textContent = recipe.emoji;
+
+    img.onload = () => {
+        loading.classList.add('hidden');
+        img.classList.remove('opacity-0');
+        img.classList.add('opacity-100');
+    };
+    img.onerror = () => {
+        loading.classList.add('hidden');
+        fallback.classList.remove('hidden');
+        fallback.classList.add('flex');
+    };
+    img.src = recipeImageUrl(recipe);
+    img.alt = recipe.name;
+}
+
+function renderDetailFooter() {
+    if (!detailContext) return;
+    const { recipe, mode } = detailContext;
+    const footer = $('#detailFooter');
+    const favActive = isFav(recipe.id);
+    const favBtn = `
+        <button class="flex items-center gap-1.5 px-3 py-2 text-sm rounded-md border transition
+                ${favActive ? 'bg-orange-50 border-star text-star' : 'border-border text-sub hover:border-star hover:text-star'}"
+                data-detail-fav>
+            <span class="text-base leading-none">★</span>
+            <span>${favActive ? 'お気に入り済' : 'お気に入り'}</span>
+        </button>`;
+
+    let actionBtn = '';
+    if (mode === 'catalog') {
+        actionBtn = `<button class="flex-1 px-3 py-2 text-sm bg-ink text-white rounded-md hover:opacity-90 transition font-medium" data-detail-addempty>空き枠に追加</button>`;
+    }
+    // composer / slot modes open detail for read-only preview (no register button needed)
+
+    footer.innerHTML = favBtn + actionBtn;
+
+    footer.querySelector('[data-detail-fav]')?.addEventListener('click', (e) => {
+        toggleFav(recipe.id, e.currentTarget.querySelector('span'));
+        renderDetailFooter();
+    });
+    footer.querySelector('[data-detail-addempty]')?.addEventListener('click', () => {
+        // Find first empty meal (array with length 0)
+        for (const d of DAYS) {
+            for (const m of MEALS) {
+                if (state.menu[d.key][m.key].length === 0) {
+                    state.menu[d.key][m.key].push(recipe.id);
+                    save();
+                    renderWeek();
+                    closeDetail();
+                    toast(`${recipe.emoji} ${d.label}${m.label} に追加しました`);
+                    return;
+                }
+            }
+        }
+        toast('空いている枠がありません');
+    });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SAVE / LOAD WEEKLY MENU
+// ══════════════════════════════════════════════════════════════════
+function saveMenu() {
+    const name = $('#saveName').value.trim();
+    if (!name) { toast('名前を入力してください'); $('#saveName').focus(); return; }
+    const id = 'm' + Date.now().toString(36);
+    state.saved.push({
+        id,
+        name,
+        menu: JSON.parse(JSON.stringify(state.menu)),
+        savedAt: new Date().toISOString(),
+    });
+    save();
+    $('#saveName').value = '';
+    renderSaved();
+    toast(`「${name}」を保存しました`);
+}
+
+function loadSavedMenu(id) {
+    const m = state.saved.find(x => x.id === id);
+    if (!m) return;
+    if (countFilled(state.menu) > 0) {
+        if (!confirm(`現在の献立を破棄して「${m.name}」を読み込みますか？`)) return;
+    }
+    state.menu = JSON.parse(JSON.stringify(m.menu));
+    save();
+    renderWeek();
+    toast(`「${m.name}」を読み込みました`);
+}
+
+function resetWeek() {
+    if (countFilled(state.menu) === 0) { toast('すでに空です'); return; }
+    if (!confirm('今週の献立をすべてクリアしますか？')) return;
+    state.menu = emptyMenu();
+    save();
+    renderWeek();
+    toast('クリアしました');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// INSPIRATION
+// ══════════════════════════════════════════════════════════════════
+function showInspiration() {
+    $('#inspirationPanel').classList.remove('hidden');
+    renderInspiration();
+    $('#inspirationPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function renderInspiration() {
+    // Filter: exclude favorites + ensure age-appropriateness (if family set)
+    const pool = RECIPES.filter(r => !isFav(r.id) && recipeFits(r));
+    const picks = shuffle(pool).slice(0, 3);
+    const box = $('#inspList');
+    box.innerHTML = '';
+    if (!picks.length) {
+        box.innerHTML = `<p class="col-span-full text-xs text-muted text-center py-6">
+            すべてお気に入り済み！お見事。
+        </p>`;
+        return;
+    }
+    for (const r of picks) {
+        const card = document.createElement('div');
+        card.className = 'insp-card bg-paper border border-border rounded-lg p-3 cursor-pointer';
+        card.innerHTML = `
+            <div class="flex items-start justify-between">
+                <span class="text-2xl" aria-hidden="true">${r.emoji}</span>
+                <button class="star-btn text-base leading-none
+                        ${isFav(r.id) ? 'text-star' : 'text-border hover:text-muted'}"
+                        data-star="${r.id}">★</button>
+            </div>
+            <div class="mt-2 text-sm font-medium">${r.name}</div>
+            <div class="mt-1 text-[10px] text-muted tracking-wider">${r.cat} · ${r.time}分</div>
+            <div class="mt-2 flex flex-wrap gap-1">
+                ${r.tags.slice(0, 3).map(t => `<span class="text-[10px] text-muted bg-hover px-1.5 py-0.5 rounded">${t}</span>`).join('')}
+            </div>
+        `;
+        card.querySelector('.star-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleFav(r.id, e.currentTarget);
+            renderInspiration();
+        });
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('.star-btn')) return;
+            beginPickForRecipe(r);
+        });
+        box.appendChild(card);
+    }
+}
+
+function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// EVENT WIRING
+// ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════
+// FAMILY MODAL
+// ══════════════════════════════════════════════════════════════════
+function openFamilyModal() {
+    renderFamilyChoices();
+    $('#familyModal').classList.remove('hidden');
+    $('#familyModal').setAttribute('aria-hidden', 'false');
+}
+function closeFamilyModal() {
+    $('#familyModal').classList.add('hidden');
+    $('#familyModal').setAttribute('aria-hidden', 'true');
+}
+function renderFamilyChoices() {
+    const wrap = $('#familyChoices');
+    wrap.innerHTML = '';
+    const total = totalFamilyCount();
+    // Summary header
+    const summary = document.createElement('div');
+    summary.className = 'col-span-2 flex items-baseline justify-between pb-2 mb-1 border-b border-border';
+    summary.innerHTML = total > 0
+        ? `<span class="text-[11px] text-muted tracking-wider">現在の構成</span>
+           <span class="text-sm font-medium">👨‍👩‍👧 合計 ${total} 人</span>`
+        : `<span class="text-[11px] text-muted tracking-wider">一緒に食べる人数を + / − で設定</span>
+           <span class="text-xs text-muted italic">未設定</span>`;
+    wrap.appendChild(summary);
+
+    for (const m of FAMILY_MEMBERS) {
+        const count = profile.members[m.key] || 0;
+        const on = count > 0;
+        const row = document.createElement('div');
+        row.className = `col-span-2 sm:col-span-1 flex items-center gap-3 px-3 py-2.5 border rounded-md transition
+                        ${on ? 'border-ink bg-hover' : 'border-border'}`;
+        row.innerHTML = `
+            <span class="text-2xl leading-none shrink-0">${m.emoji}</span>
+            <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium">${m.label}</div>
+                <div class="text-[10px] text-muted mt-0.5">${m.sub}</div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <button type="button" data-dec
+                        class="w-7 h-7 flex items-center justify-center border border-border rounded
+                               text-lg leading-none text-sub hover:text-ink hover:border-ink
+                               disabled:opacity-30 disabled:hover:text-sub disabled:hover:border-border transition"
+                        ${count === 0 ? 'disabled' : ''}>−</button>
+                <span class="w-6 text-center text-sm font-semibold tabular-nums ${on ? 'text-ink' : 'text-muted'}">${count}</span>
+                <button type="button" data-inc
+                        class="w-7 h-7 flex items-center justify-center border border-border rounded
+                               text-lg leading-none text-sub hover:text-ink hover:border-ink transition">+</button>
+            </div>
+        `;
+        row.querySelector('[data-dec]').addEventListener('click', () => {
+            profile.members[m.key] = Math.max(0, (profile.members[m.key] || 0) - 1);
+            renderFamilyChoices();
+        });
+        row.querySelector('[data-inc]').addEventListener('click', () => {
+            profile.members[m.key] = Math.min(20, (profile.members[m.key] || 0) + 1);
+            renderFamilyChoices();
+        });
+        wrap.appendChild(row);
+    }
+}
+$('#btnFamily').addEventListener('click', openFamilyModal);
+$('#familyClose').addEventListener('click', closeFamilyModal);
+$('#familySkip').addEventListener('click', () => {
+    profile.completed = true;
+    saveProfile();
+    closeFamilyModal();
+});
+$('#familySave').addEventListener('click', () => {
+    profile.completed = true;
+    saveProfile();
+    closeFamilyModal();
+    toast(profile.members.length
+        ? `👨‍👩‍👧 ${profile.members.length} 人分で反映`
+        : '保存しました');
+});
+$('#familyModal').addEventListener('click', (e) => {
+    if (e.target === $('#familyModal')) closeFamilyModal();
+});
+
+// Show family setup on first visit
+if (!profile.completed) {
+    setTimeout(openFamilyModal, 400);
+}
+
+$('#search').addEventListener('input', renderSidebar);
+
+$('#btnSave').addEventListener('click', saveMenu);
+$('#saveName').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') saveMenu();
+});
+
+$('#btnReset').addEventListener('click', resetWeek);
+$('#btnInspiration').addEventListener('click', showInspiration);
+$('#btnInspClose').addEventListener('click', () => $('#inspirationPanel').classList.add('hidden'));
+$('#btnInspRefresh').addEventListener('click', renderInspiration);
+
+$('#pickerClose').addEventListener('click', () => {
+    // If picker was opened from composer, return to composer instead of fully closing
+    if (pickerContext?.fromComposer) {
+        closePicker();
+        $('#composerModal').classList.remove('hidden');
+    } else {
+        closePicker();
+    }
+});
+$('#pickerModal').addEventListener('click', (e) => {
+    if (e.target === $('#pickerModal')) {
+        if (pickerContext?.fromComposer) {
+            closePicker();
+            $('#composerModal').classList.remove('hidden');
+        } else {
+            closePicker();
+        }
+    }
+});
+$$('.picker-tab').forEach(b => {
+    b.addEventListener('click', () => setPickerTab(b.dataset.tab));
+});
+$('#pickerSearch').addEventListener('input', renderPickerList);
+
+// Composer wiring
+$('#composerClose').addEventListener('click', closeComposer);
+$('#composerDoneBtn').addEventListener('click', closeComposer);
+$('#composerModal').addEventListener('click', (e) => {
+    if (e.target === $('#composerModal')) closeComposer();
+});
+$('#composerAddBtn').addEventListener('click', composerOpenPicker);
+
+// Detail wiring
+$('#detailClose').addEventListener('click', closeDetail);
+$('#detailModal').addEventListener('click', (e) => {
+    if (e.target === $('#detailModal')) closeDetail();
+});
+
+// Stacked ESC handling (detail on top > picker > composer)
+document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!$('#detailModal').classList.contains('hidden'))     { closeDetail();  return; }
+    if (!$('#pickerModal').classList.contains('hidden')) {
+        if (pickerContext?.fromComposer) {
+            closePicker();
+            $('#composerModal').classList.remove('hidden');
+        } else {
+            closePicker();
+        }
+        return;
+    }
+    if (!$('#composerModal').classList.contains('hidden'))   { closeComposer(); return; }
+});
+
+// ══════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════
+renderAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <title>日めくり献立 — weekly menu, local-first</title>
+  <defs>
+    <pattern id="gridBg" x="0" y="0" width="36" height="36" patternUnits="userSpaceOnUse">
+      <path d="M 36 0 L 0 0 0 36" fill="none" stroke="#e5e7eb" stroke-width="0.5" opacity="0.5"/>
+    </pattern>
+  </defs>
+
+  <!-- Cream paper ground -->
+  <rect width="1200" height="630" fill="#fdfcf9"/>
+  <rect width="1200" height="630" fill="url(#gridBg)"/>
+
+  <!-- ═══ Massive bento emoji (left) ═══ -->
+  <text x="110" y="375" font-size="300" text-anchor="middle"
+        font-family="'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif"
+        dominant-baseline="alphabetic">🍱</text>
+
+  <!-- ═══ Top eyebrow ═══ -->
+  <text x="260" y="88" font-family="'Noto Sans JP', sans-serif" font-size="15" letter-spacing="6" fill="#c2410c" font-weight="600">
+    ◼  KINOSHITA STUDIO  ·  2026
+  </text>
+
+  <!-- ═══ Main title ═══ -->
+  <text x="260" y="200" font-family="'Noto Sans JP', sans-serif" font-size="88" font-weight="700" fill="#37352f" letter-spacing="-2">
+    日めくり献立
+  </text>
+
+  <!-- ═══ Japanese tagline ═══ -->
+  <text x="260" y="258" font-family="'Noto Sans JP', sans-serif" font-size="24" fill="#6b7280">
+    「今日なにする？」を、もう考えない。
+  </text>
+
+  <!-- ═══ English tagline ═══ -->
+  <text x="260" y="296" font-family="'Inter', 'Noto Sans JP', sans-serif" font-size="18" fill="#9b9a97" letter-spacing="1.5">
+    Stop deciding. Start cooking. — weekly menu, local-first
+  </text>
+
+  <!-- ═══ Emoji feature row 1 ═══ -->
+  <g transform="translate(260, 340)" font-family="'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif">
+    <text x="0" y="28" font-size="28">🌅</text>
+    <text x="40" y="24" font-size="16" font-family="'Noto Sans JP',sans-serif" fill="#6b7280">朝</text>
+    <text x="100" y="28" font-size="28">☀️</text>
+    <text x="140" y="24" font-size="16" font-family="'Noto Sans JP',sans-serif" fill="#6b7280">昼</text>
+    <text x="200" y="28" font-size="28">🌙</text>
+    <text x="240" y="24" font-size="16" font-family="'Noto Sans JP',sans-serif" fill="#6b7280">夜</text>
+    <text x="320" y="24" font-size="14" font-family="'Inter',sans-serif" fill="#9b9a97" letter-spacing="2">×  7 DAYS  =  21 MEALS</text>
+  </g>
+
+  <!-- ═══ Feature pills ═══ -->
+  <g transform="translate(260, 400)" font-family="'Noto Sans JP',sans-serif">
+    <g>
+      <rect x="0" y="0" width="180" height="36" rx="18" fill="none" stroke="#e5e7eb"/>
+      <text x="90" y="23" text-anchor="middle" font-size="13" fill="#6b7280">📚  40レシピ</text>
+    </g>
+    <g transform="translate(192, 0)">
+      <rect x="0" y="0" width="180" height="36" rx="18" fill="none" stroke="#e5e7eb"/>
+      <text x="90" y="23" text-anchor="middle" font-size="13" fill="#6b7280">👩‍🍳  作り方付き</text>
+    </g>
+    <g transform="translate(384, 0)">
+      <rect x="0" y="0" width="180" height="36" rx="18" fill="none" stroke="#e5e7eb"/>
+      <text x="90" y="23" text-anchor="middle" font-size="13" fill="#6b7280">👨‍👩‍👧  家族に合わせて</text>
+    </g>
+  </g>
+
+  <!-- ═══ Food emoji strip ═══ -->
+  <g transform="translate(260, 462)" font-family="'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif">
+    <text x="0"   y="28" font-size="28">🐟</text>
+    <text x="50"  y="28" font-size="28">🐖</text>
+    <text x="100" y="28" font-size="28">🍗</text>
+    <text x="150" y="28" font-size="28">🍛</text>
+    <text x="200" y="28" font-size="28">🥔</text>
+    <text x="250" y="28" font-size="28">🍚</text>
+    <text x="300" y="28" font-size="28">🥚</text>
+    <text x="350" y="28" font-size="28">🥬</text>
+    <text x="400" y="28" font-size="28">🫕</text>
+    <text x="450" y="28" font-size="28">🥞</text>
+    <text x="500" y="28" font-size="28">🍜</text>
+    <text x="550" y="28" font-size="28">🥕</text>
+    <text x="600" y="28" font-size="28">🎃</text>
+    <text x="650" y="28" font-size="28">🥩</text>
+    <text x="700" y="28" font-size="28">🫘</text>
+    <text x="750" y="28" font-size="28">🌽</text>
+  </g>
+
+  <!-- ═══ Bottom eyebrow ═══ -->
+  <text x="260" y="560" font-family="'Noto Sans JP', sans-serif" font-size="14" fill="#9b9a97" letter-spacing="1">
+    🔒 ログイン不要 · ☁️ サーバーなし · 📄 HTML 一枚 · 💾 データはブラウザ内
+  </text>
+  <text x="1140" y="560" text-anchor="end" font-family="'Inter', sans-serif" font-size="12" fill="#9b9a97" letter-spacing="2">
+    v1.1  ·  2026
+  </text>
+</svg>
