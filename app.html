@@ -123,19 +123,142 @@ tailwind.config = {
 
     /* ═══════════════════════════════════════════════════════════════
        日めくり TODAY CARD — a calendar-page view of today's meals
+       Drag the bottom corners to peel the page to the next day.
        ═══════════════════════════════════════════════════════════════ */
     #todayCard {
-        animation: todayFlip 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-        transform-origin: top center;
+        perspective: 1600px;
         background:
             radial-gradient(circle at 20% -5%, rgba(254,243,199,0.4), transparent 60%),
             radial-gradient(circle at 100% 110%, rgba(224,231,255,0.3), transparent 50%),
             #ffffff;
     }
-    @keyframes todayFlip {
-        0%   { opacity: 0; transform: perspective(1000px) rotateX(-22deg) translateY(-8px); }
-        100% { opacity: 1; transform: perspective(1000px) rotateX(0) translateY(0); }
+    .today-page-front, .today-page-back {
+        background:
+            radial-gradient(circle at 20% -5%, rgba(254,243,199,0.4), transparent 60%),
+            radial-gradient(circle at 100% 110%, rgba(224,231,255,0.3), transparent 50%),
+            #ffffff;
     }
+    .today-page-front {
+        position: relative;
+        z-index: 2;
+        transform-origin: top center;
+        transform-style: preserve-3d;
+        backface-visibility: hidden;
+        animation: todayFlip 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+        transition: transform 0.45s cubic-bezier(0.2, 0.7, 0.2, 1),
+                    opacity 0.35s ease,
+                    box-shadow 0.35s ease;
+        will-change: transform, opacity;
+    }
+    .today-page-front.flip-dragging { transition: none; }
+    .today-page-front.settling {
+        animation: todaySettleIn 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    }
+    .today-page-back {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        box-shadow: inset 0 18px 42px -28px rgba(55, 53, 47, 0.25);
+        filter: saturate(0.9);
+        pointer-events: none;
+    }
+    @keyframes todayFlip {
+        0%   { opacity: 0; transform: rotateX(-22deg) translateY(-8px); }
+        100% { opacity: 1; transform: rotateX(0) translateY(0); }
+    }
+    @keyframes todaySettleIn {
+        0%   { opacity: 0.4; transform: translateY(10px) scale(0.98); }
+        60%  { opacity: 1;   transform: translateY(-2px) scale(1.003); }
+        100% { opacity: 1;   transform: translateY(0) scale(1); }
+    }
+
+    /* Corner grip — drag from here to flip the page */
+    .flip-grip {
+        position: absolute;
+        bottom: 0;
+        width: 56px;
+        height: 56px;
+        display: grid;
+        place-items: center;
+        cursor: grab;
+        touch-action: none;
+        user-select: none;
+        z-index: 10;
+        color: #c9beaf;
+        background: transparent;
+        border: 0;
+        padding: 0;
+        transition: color 0.2s;
+    }
+    .flip-grip:hover { color: #c2410c; }
+    .flip-grip:active { cursor: grabbing; }
+    .flip-grip-bl { left: 0; }
+    .flip-grip-br { right: 0; }
+    .flip-grip::before {
+        content: '';
+        position: absolute;
+        inset: 12px;
+        border-bottom: 1px dashed currentColor;
+        opacity: 0.5;
+        transition: inset 0.2s, opacity 0.2s;
+        pointer-events: none;
+    }
+    .flip-grip-br::before { border-right: 1px dashed currentColor; }
+    .flip-grip-bl::before { border-left: 1px dashed currentColor; }
+    .flip-grip::after {
+        content: '';
+        position: absolute;
+        bottom: 8px;
+        width: 9px;
+        height: 9px;
+        background: currentColor;
+        opacity: 0.55;
+        transition: opacity 0.2s, transform 0.2s;
+        pointer-events: none;
+    }
+    .flip-grip-br::after { right: 8px; clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+    .flip-grip-bl::after { left:  8px; clip-path: polygon(0 0, 100% 100%, 0 100%); }
+    .flip-grip:hover::before { inset: 9px; opacity: 0.8; }
+    .flip-grip:hover::after  { opacity: 1; transform: scale(1.15); }
+
+    /* Tiny hint tooltip that appears at idle to teach the gesture */
+    .flip-grip .flip-hint {
+        position: absolute;
+        bottom: 48px;
+        white-space: nowrap;
+        font-size: 10px;
+        letter-spacing: 0.15em;
+        color: #9b9a97;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 999px;
+        padding: 2px 8px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s, transform 0.2s;
+        transform: translateY(4px);
+    }
+    .flip-grip-br .flip-hint { right: 0; }
+    .flip-grip-bl .flip-hint { left: 0; }
+    .flip-grip:hover .flip-hint { opacity: 1; transform: translateY(0); }
+
+    /* "Back to today" pill when viewing a future page */
+    #todayReset {
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        z-index: 15;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 10px;
+        letter-spacing: 0.15em;
+        color: #6b7280;
+        cursor: pointer;
+        transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    #todayReset:hover { color: #c2410c; border-color: #c2410c; background: #fff7ed; }
 
     .today-meals {
         display: grid;
@@ -215,6 +338,11 @@ tailwind.config = {
             <span class="hidden sm:inline text-xs text-muted tracking-wider">weekly menu · local-first</span>
         </div>
         <div class="flex items-center gap-2">
+            <button id="btnFridge"
+                    class="text-xs sm:text-sm px-3 py-1.5 rounded border border-border hover:border-ink hover:text-ink text-sub transition"
+                    title="冷蔵庫の中身から逆引き">
+                🧊 <span class="hidden sm:inline">冷蔵庫</span>
+            </button>
             <button id="btnFamily"
                     class="text-xs sm:text-sm px-3 py-1.5 rounded border border-border hover:border-ink hover:text-ink text-sub transition"
                     title="家族構成を設定">
@@ -282,42 +410,11 @@ tailwind.config = {
     <!-- ═══ MAIN: TODAY CARD + WEEKLY MENU ═══════════════════════ -->
     <section class="order-1 lg:order-2 space-y-6">
 
-        <!-- 🗓 日めくり — Today's meals as a calendar page -->
+        <!-- 🗓 日めくり — Today's meals as a calendar page (drag corners to flip) -->
         <article id="todayCard" class="relative border border-border rounded-xl shadow-sm overflow-hidden">
-            <!-- Decorative binder holes -->
-            <div class="flex justify-center gap-12 pt-3 pb-1" aria-hidden="true">
-                <span class="w-2 h-2 rounded-full border border-border bg-hover"></span>
-                <span class="w-2 h-2 rounded-full border border-border bg-hover"></span>
-                <span class="w-2 h-2 rounded-full border border-border bg-hover"></span>
-            </div>
-            <!-- Date -->
-            <header class="text-center pt-2 pb-5">
-                <div class="text-[10px] tracking-[0.4em] text-muted uppercase">Today · きょう</div>
-                <div id="todayDateNum" class="today-date-big text-[72px] sm:text-[96px] mt-2">21</div>
-                <div class="flex items-center justify-center gap-3 mt-2">
-                    <span class="h-px w-8 bg-accent"></span>
-                    <span id="todayDateLabel" class="text-sm text-sub tracking-wider">4月 · 火曜日</span>
-                    <span class="h-px w-8 bg-accent"></span>
-                </div>
-            </header>
-            <!-- Meals -->
-            <div class="today-meals px-5 sm:px-8 pb-6">
-                <div>
-                    <div class="today-meal-label">🌅 朝</div>
-                    <div id="todayBreakfast" class="today-meal-list"></div>
-                </div>
-                <div>
-                    <div class="today-meal-label">☀️ 昼</div>
-                    <div id="todayLunch" class="today-meal-list"></div>
-                </div>
-                <div>
-                    <div class="today-meal-label">🌙 夜</div>
-                    <div id="todayDinner" class="today-meal-list"></div>
-                </div>
-            </div>
-            <footer class="text-center py-2.5 border-t border-border bg-cream/40 text-[10px] text-muted tracking-[0.3em] uppercase">
-                ◼ 日めくり献立  ·  daily flip
-            </footer>
+            <button id="todayReset" type="button" class="hidden" aria-label="今日に戻る">↺ 今日へ</button>
+            <div id="todayPageBack" class="today-page-back" aria-hidden="true"></div>
+            <div id="todayPageFront" class="today-page-front"></div>
         </article>
 
         <div class="flex items-baseline justify-between gap-4">
@@ -403,6 +500,40 @@ tailwind.config = {
         <div id="pickerList" class="flex-1 overflow-y-auto scroll-fine px-2 py-2"></div>
         <footer class="px-5 py-3 border-t border-border text-[10px] text-muted tracking-wider">
             クリックして枠に登録 · ★ でお気に入り追加
+        </footer>
+    </div>
+</div>
+
+<!-- ═══ FRIDGE REVERSE-SEARCH MODAL (ingredients → recipes) ═══ -->
+<div id="fridgeModal" class="hidden fixed inset-0 z-[56] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-ink/40" aria-hidden="true">
+    <div class="bg-paper w-full sm:max-w-xl max-h-[92vh]
+                sm:rounded-lg rounded-t-2xl shadow-soft flex flex-col modal-slide">
+        <header class="flex items-baseline justify-between px-5 py-4 border-b border-border">
+            <div>
+                <h3 class="text-sm font-semibold tracking-wide">🧊 冷蔵庫にあるもの</h3>
+                <p id="fridgeSubtitle" class="text-xs text-muted mt-0.5">食材を選ぶと、作れるレシピが見つかります</p>
+            </div>
+            <button id="fridgeClose" class="text-muted hover:text-ink text-lg leading-none">×</button>
+        </header>
+
+        <!-- Selection view -->
+        <div id="fridgeSelectView" class="flex-1 overflow-y-auto px-5 py-4"></div>
+
+        <!-- Results view -->
+        <div id="fridgeResultsView" class="hidden flex-1 overflow-y-auto px-5 py-4">
+            <div id="fridgeResultsList"></div>
+        </div>
+
+        <footer class="flex items-center gap-2 px-5 py-3 border-t border-border">
+            <button id="fridgeBack" class="hidden px-3 py-2 text-sm text-sub hover:text-ink transition">
+                ← 戻る
+            </button>
+            <button id="fridgeClear" class="px-3 py-2 text-sm text-sub hover:text-ink transition">
+                リセット
+            </button>
+            <button id="fridgeSearch" class="flex-1 px-3 py-2 text-sm bg-ink text-paper rounded-md hover:opacity-90 transition font-medium">
+                🔍 <span id="fridgeSearchLabel">食材を選んでください</span>
+            </button>
         </footer>
     </div>
 </div>
@@ -1666,6 +1797,1155 @@ const RECIPES = [
         'レモンを添える。',
       ],
       note: '淡白な胸肉もチーズ衣でしっとり仕上がる。' },
+
+    // ═════════════════════════════════════════════════════════════════
+    // +100 recipes (r66–r165) — 主食・主菜・丼・一品・副菜・汁物の拡充
+    // ═════════════════════════════════════════════════════════════════
+
+    // ─── 主食 (r66-r90) ──────────────────────────────────────────
+    { id:'r66', name:'きつねうどん', emoji:'🦊', cat:'主食', time:15, serves:2, tags:['うどん','油揚げ','定番'],
+      ingredients:[{name:'うどん',amount:'2玉'},{name:'だし',amount:'800ml'},{name:'しょうゆ',amount:'大さじ3'},{name:'みりん',amount:'大さじ2'},{name:'油揚げ',amount:'2枚'},{name:'長ねぎ',amount:'適量'}],
+      steps:['油揚げを甘辛く煮る（しょうゆ・砂糖・だしで5分）。','別鍋でだしを温め、しょうゆとみりんで味付け。','うどんを茹でて湯切り、丼に入れつゆを注ぐ。','油揚げとねぎをのせて完成。'] },
+
+    { id:'r67', name:'肉うどん', emoji:'🍜', cat:'主食', time:15, serves:2, tags:['うどん','牛肉','定番'],
+      ingredients:[{name:'うどん',amount:'2玉'},{name:'牛肉薄切り',amount:'150g'},{name:'だし',amount:'800ml'},{name:'しょうゆ',amount:'大さじ3'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'長ねぎ',amount:'1本'}],
+      steps:['牛肉をしょうゆと砂糖で炒り煮。','だしを温め、うどんを茹でる。','丼にうどん・つゆ・牛肉・ねぎをのせる。'] },
+
+    { id:'r68', name:'ざるそば', emoji:'🫴', cat:'主食', time:10, serves:2, tags:['そば','冷たい','夏','時短'],
+      ingredients:[{name:'そば',amount:'2束'},{name:'めんつゆ',amount:'200ml'},{name:'長ねぎ',amount:'少々'},{name:'わさび',amount:'少々'},{name:'刻み海苔',amount:'少々'}],
+      steps:['そばを表示通りに茹で、冷水で締める。','器にめんつゆを入れ、薬味を用意。','ざるに盛り、薬味と海苔を添える。'] },
+
+    { id:'r69', name:'天ぷらそば', emoji:'🍤', cat:'主食', time:20, serves:2, tags:['そば','天ぷら','海老'],
+      ingredients:[{name:'そば',amount:'2束'},{name:'海老',amount:'4尾'},{name:'天ぷら衣',amount:'適量'},{name:'めんつゆ',amount:'400ml'},{name:'長ねぎ',amount:'適量'}],
+      steps:['海老の天ぷらを揚げる（170℃で2分）。','そばを茹でて湯切り。','器にそばを入れ、熱いつゆを注ぐ。','天ぷらとねぎをのせる。'] },
+
+    { id:'r70', name:'カルボナーラ', emoji:'🍝', cat:'主食', time:15, serves:2, tags:['パスタ','ベーコン','チーズ','洋風'],
+      ingredients:[{name:'スパゲッティ',amount:'200g'},{name:'ベーコン',amount:'80g'},{name:'卵',amount:'2個'},{name:'パルメザン',amount:'大さじ4'},{name:'生クリーム',amount:'100ml'},{name:'黒こしょう',amount:'少々'}],
+      steps:['スパゲッティを塩茹で。','ベーコンを炒める。','卵・チーズ・生クリームをボウルで混ぜる。','茹で上がった麺を熱々のままボウルに入れ素早く絡める。','黒こしょうをたっぷり振る。'] },
+
+    { id:'r71', name:'ナポリタン', emoji:'🍝', cat:'主食', time:15, serves:2, tags:['パスタ','ケチャップ','洋風','定番'],
+      ingredients:[{name:'スパゲッティ',amount:'200g'},{name:'ベーコン',amount:'80g'},{name:'玉ねぎ',amount:'1/2個'},{name:'ピーマン',amount:'1個'},{name:'ケチャップ',amount:'大さじ5'},{name:'バター',amount:'10g'},{name:'塩こしょう',amount:'少々'}],
+      steps:['スパゲッティを茹でる。','野菜とベーコンを炒める。','ケチャップを加え煮詰め、麺を加える。','バターを混ぜて仕上げ。'] },
+
+    { id:'r72', name:'ペペロンチーノ', emoji:'🌶', cat:'主食', time:15, serves:2, tags:['パスタ','にんにく','時短'],
+      ingredients:[{name:'スパゲッティ',amount:'200g'},{name:'にんにく',amount:'2かけ'},{name:'赤唐辛子',amount:'1本'},{name:'オリーブオイル',amount:'大さじ3'},{name:'塩',amount:'少々'},{name:'パセリ',amount:'少々'}],
+      steps:['スパゲッティを塩茹で（茹で汁を取っておく）。','フライパンにオイル・にんにく・唐辛子を弱火で香り出し。','茹で汁を大さじ2加え、麺を絡める。','パセリを散らす。'] },
+
+    { id:'r73', name:'ミートソーススパゲッティ', emoji:'🍝', cat:'主食', time:30, serves:3, tags:['パスタ','挽き肉','トマト','子ども'],
+      ingredients:[{name:'スパゲッティ',amount:'300g'},{name:'合いびき肉',amount:'250g'},{name:'玉ねぎ',amount:'1個'},{name:'にんじん',amount:'1/2本'},{name:'にんにく',amount:'1かけ'},{name:'トマト缶',amount:'1缶'},{name:'ケチャップ',amount:'大さじ3'},{name:'ウスターソース',amount:'大さじ1'}],
+      steps:['野菜をみじん切り。','挽き肉を炒め、野菜を加える。','トマト缶・調味料を加え20分煮込む。','茹でたスパゲッティにかける。'] },
+
+    { id:'r74', name:'焼きそば', emoji:'🍜', cat:'主食', time:15, serves:2, tags:['麺','豚肉','ソース','定番'],
+      ingredients:[{name:'焼きそば麺',amount:'2玉'},{name:'豚バラ',amount:'100g'},{name:'キャベツ',amount:'1/4個'},{name:'にんじん',amount:'1/3本'},{name:'もやし',amount:'1/2袋'},{name:'ソース',amount:'大さじ3'},{name:'青のり・紅しょうが',amount:'適量'}],
+      steps:['野菜を食べやすく切る。','豚肉を炒め、野菜を加える。','麺をほぐして入れ、ソースで味付け。','青のりと紅しょうがを散らす。'] },
+
+    { id:'r75', name:'冷やし中華', emoji:'🥗', cat:'主食', time:15, serves:2, tags:['中華麺','夏','冷たい'],
+      ingredients:[{name:'中華麺',amount:'2玉'},{name:'ハム',amount:'4枚'},{name:'卵',amount:'2個'},{name:'きゅうり',amount:'1本'},{name:'トマト',amount:'1個'},{name:'冷やし中華のたれ',amount:'2袋'}],
+      steps:['錦糸卵を作り、きゅうり・ハムを千切り、トマトは薄切り。','麺を茹でて冷水で締める。','器に盛り、具をのせる。','たれをかけて完成。'] },
+
+    { id:'r76', name:'醤油ラーメン', emoji:'🍜', cat:'主食', time:15, serves:2, tags:['ラーメン','中華','定番'],
+      ingredients:[{name:'中華麺',amount:'2玉'},{name:'鶏がらスープ',amount:'800ml'},{name:'しょうゆ',amount:'大さじ3'},{name:'チャーシュー',amount:'4枚'},{name:'メンマ',amount:'適量'},{name:'長ねぎ',amount:'適量'}],
+      steps:['スープを温めしょうゆで味付け。','麺を茹でる。','丼にスープと麺を入れる。','具材をトッピング。'] },
+
+    { id:'r77', name:'味噌ラーメン', emoji:'🍜', cat:'主食', time:15, serves:2, tags:['ラーメン','味噌','中華'],
+      ingredients:[{name:'中華麺',amount:'2玉'},{name:'鶏がらスープ',amount:'800ml'},{name:'味噌',amount:'大さじ3'},{name:'豚ひき肉',amount:'100g'},{name:'もやし',amount:'1/2袋'},{name:'長ねぎ',amount:'適量'},{name:'コーン',amount:'お好みで'}],
+      steps:['鍋でひき肉を炒めもやしを加える。','スープと味噌を加え煮立てる。','別鍋で麺を茹でる。','丼にスープ・麺・具を盛る。'] },
+
+    { id:'r78', name:'鶏雑炊', emoji:'🥣', cat:'主食', time:20, serves:2, tags:['ご飯','鶏','だし','優しい'],
+      ingredients:[{name:'ご飯',amount:'茶碗2杯'},{name:'鶏もも肉',amount:'100g'},{name:'卵',amount:'1個'},{name:'だし',amount:'500ml'},{name:'しょうゆ',amount:'大さじ1'},{name:'三つ葉',amount:'少々'}],
+      steps:['鶏肉を一口大に切り、だしで煮る。','ご飯を加え、しょうゆで味付け。','溶き卵を回し入れる。','三つ葉を散らす。'] },
+
+    { id:'r79', name:'おかゆ', emoji:'🍚', cat:'主食', time:30, serves:2, tags:['ご飯','優しい','体調不良時'],
+      ingredients:[{name:'米',amount:'1/2合'},{name:'水',amount:'800ml'},{name:'塩',amount:'少々'}],
+      steps:['米を研いで鍋に入れる。','水を加え、強火で沸騰させたら弱火で25分。','とろみが付いたら塩で味を調える。'],
+      note:'体調が悪い時の優しい主食。' },
+
+    { id:'r80', name:'お茶漬け', emoji:'🍵', cat:'主食', time:5, serves:1, tags:['ご飯','時短','夜食'],
+      ingredients:[{name:'ご飯',amount:'1杯'},{name:'お茶漬けの素',amount:'1袋'},{name:'お湯 or だし',amount:'200ml'},{name:'梅干し or 鮭',amount:'お好みで'}],
+      steps:['器にご飯を盛り、お茶漬けの素をかける。','熱いお湯かだしを注ぐ。','お好みで具材を添える。'] },
+
+    { id:'r81', name:'鶏と根菜の炊き込みご飯', emoji:'🥘', cat:'主食', time:60, serves:4, tags:['ご飯','鶏','根菜','和食'],
+      ingredients:[{name:'米',amount:'2合'},{name:'鶏もも',amount:'150g'},{name:'にんじん',amount:'1/2本'},{name:'ごぼう',amount:'1/2本'},{name:'しいたけ',amount:'3個'},{name:'しょうゆ',amount:'大さじ2'},{name:'みりん',amount:'大さじ1'},{name:'だし',amount:'米の規定量'}],
+      steps:['米を研いで浸水30分。','鶏と野菜を細かく切る。','炊飯器に米・だし・調味料・具を入れて炊く。','蒸らして混ぜる。'] },
+
+    { id:'r82', name:'たけのこご飯', emoji:'🎍', cat:'主食', time:60, serves:4, tags:['ご飯','春','たけのこ'],
+      ingredients:[{name:'米',amount:'2合'},{name:'たけのこ（水煮）',amount:'150g'},{name:'油揚げ',amount:'1枚'},{name:'だし',amount:'米の規定量'},{name:'しょうゆ',amount:'大さじ2'},{name:'みりん',amount:'大さじ1'},{name:'木の芽',amount:'少々'}],
+      steps:['たけのこと油揚げを細かく切る。','炊飯器に米・だし・調味料・具を入れて炊く。','蒸らして混ぜ、木の芽を添える。'] },
+
+    { id:'r83', name:'栗ごはん', emoji:'🌰', cat:'主食', time:60, serves:4, tags:['ご飯','秋','栗','行事食'],
+      ingredients:[{name:'米',amount:'2合'},{name:'もち米',amount:'1/2合'},{name:'栗（甘露煮 or 生）',amount:'15粒'},{name:'水',amount:'規定量'},{name:'塩',amount:'小さじ1/2'},{name:'酒',amount:'大さじ2'}],
+      steps:['米・もち米を研いで浸水30分。','炊飯器に米・水・塩・酒・栗を入れて炊く。','蒸らして完成。'] },
+
+    { id:'r84', name:'そうめん', emoji:'🍜', cat:'主食', time:10, serves:2, tags:['麺','冷たい','夏','時短'],
+      ingredients:[{name:'そうめん',amount:'2束'},{name:'めんつゆ',amount:'200ml'},{name:'氷',amount:'適量'},{name:'長ねぎ・しょうが',amount:'適量'}],
+      steps:['そうめんを表示通りに茹でる。','冷水でもみ洗いして締める。','氷とともに器に盛り、つゆと薬味を添える。'] },
+
+    { id:'r85', name:'オムそば', emoji:'🍜', cat:'主食', time:20, serves:2, tags:['麺','卵','子ども'],
+      ingredients:[{name:'焼きそば麺',amount:'2玉'},{name:'キャベツ',amount:'1/4個'},{name:'豚バラ',amount:'80g'},{name:'卵',amount:'4個'},{name:'ソース',amount:'大さじ3'},{name:'ケチャップ',amount:'適量'}],
+      steps:['焼きそばを作る。','卵を溶き、フライパンで薄焼きにする。','卵の上に焼きそばをのせて包む。','ケチャップを添える。'] },
+
+    { id:'r86', name:'タコライス', emoji:'🌮', cat:'主食', time:20, serves:2, tags:['ご飯','挽き肉','沖縄','子ども'],
+      ingredients:[{name:'ご飯',amount:'2杯'},{name:'合いびき肉',amount:'200g'},{name:'玉ねぎ',amount:'1/4個'},{name:'トマト',amount:'1個'},{name:'レタス',amount:'2枚'},{name:'チーズ',amount:'適量'},{name:'ケチャップ',amount:'大さじ2'},{name:'ウスターソース',amount:'大さじ1'},{name:'カレー粉',amount:'小さじ1'}],
+      steps:['玉ねぎをみじん切り、挽き肉と炒める。','カレー粉・ケチャップ・ソースで味付け。','ご飯にレタス・挽き肉・チーズ・トマトを順にのせる。'] },
+
+    { id:'r87', name:'キーマカレー', emoji:'🍛', cat:'主食', time:25, serves:3, tags:['カレー','挽き肉','時短'],
+      ingredients:[{name:'合いびき肉',amount:'300g'},{name:'玉ねぎ',amount:'1個'},{name:'にんじん',amount:'1/2本'},{name:'カレールー',amount:'1/2箱'},{name:'トマト缶',amount:'1/2缶'},{name:'水',amount:'200ml'},{name:'ご飯',amount:'3杯'}],
+      steps:['野菜をみじん切り、挽き肉と炒める。','トマト缶と水を加え5分煮る。','ルーを溶かし、とろみが付くまで煮る。','ご飯と一緒に器へ。'] },
+
+    { id:'r88', name:'チーズリゾット', emoji:'🧀', cat:'主食', time:20, serves:2, tags:['ご飯','チーズ','洋風'],
+      ingredients:[{name:'ご飯',amount:'2杯'},{name:'玉ねぎ',amount:'1/4個'},{name:'バター',amount:'10g'},{name:'白ワイン',amount:'大さじ2'},{name:'チキンスープ',amount:'400ml'},{name:'パルメザン',amount:'大さじ3'},{name:'塩こしょう',amount:'少々'}],
+      steps:['バターで玉ねぎを炒める。','ご飯を加え、白ワインで香り付け。','スープを少しずつ加えながら煮る。','チーズと塩こしょうで仕上げ。'] },
+
+    { id:'r89', name:'パエリア', emoji:'🥘', cat:'主食', time:40, serves:4, tags:['ご飯','海鮮','パーティ','行事食'],
+      ingredients:[{name:'米',amount:'2合'},{name:'海老',amount:'8尾'},{name:'あさり',amount:'200g'},{name:'鶏もも',amount:'150g'},{name:'玉ねぎ',amount:'1/2個'},{name:'ピーマン',amount:'1個'},{name:'サフラン',amount:'少々'},{name:'チキンスープ',amount:'400ml'},{name:'オリーブオイル',amount:'大さじ2'}],
+      steps:['具材を下処理。','フライパンで鶏・海老を炒める。','米と玉ねぎを加え、スープ・サフランを加える。','中火で10分、弱火で10分、蒸らし5分。'] },
+
+    { id:'r90', name:'あんかけ焼きそば', emoji:'🍜', cat:'主食', time:20, serves:2, tags:['中華','麺','野菜たっぷり'],
+      ingredients:[{name:'中華麺',amount:'2玉'},{name:'豚肉',amount:'100g'},{name:'白菜',amount:'2枚'},{name:'にんじん',amount:'1/3本'},{name:'しいたけ',amount:'2個'},{name:'鶏がらスープ',amount:'300ml'},{name:'しょうゆ',amount:'大さじ1'},{name:'片栗粉',amount:'大さじ1'},{name:'ごま油',amount:'少々'}],
+      steps:['麺を両面カリッと焼く（別皿へ）。','豚肉と野菜を炒める。','スープ・しょうゆを加え、水溶き片栗粉でとろみ。','麺にあんをかける。'] },
+
+    // ─── 主菜 (r91-r120) ──────────────────────────────────────────
+    { id:'r91', name:'ぶり大根', emoji:'🐟', cat:'主菜', time:40, serves:3, tags:['魚','煮物','ぶり','和食'],
+      ingredients:[{name:'ぶり',amount:'3切れ'},{name:'大根',amount:'1/3本'},{name:'しょうが',amount:'1かけ'},{name:'しょうゆ',amount:'大さじ3'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ2'},{name:'酒',amount:'大さじ3'},{name:'水',amount:'300ml'}],
+      steps:['大根を2cm厚の半月切り、下茹で。','ぶりに熱湯を回しかけて霜降り。','鍋に大根・ぶり・水・調味料・しょうがを入れ煮る。','落し蓋で30分、味を含ませる。'] },
+
+    { id:'r92', name:'鯖の塩焼き', emoji:'🐟', cat:'主菜', time:20, serves:2, tags:['魚','焼き物','定番','和食'],
+      ingredients:[{name:'鯖',amount:'2切れ'},{name:'塩',amount:'小さじ1/2'},{name:'大根おろし',amount:'適量'},{name:'すだち',amount:'1/4個'}],
+      steps:['鯖に塩をふり15分おく。','水気を拭き、グリルで両面焼く（中火で計10分）。','大根おろしとすだちを添える。'] },
+
+    { id:'r93', name:'いわしの蒲焼き', emoji:'🐟', cat:'主菜', time:15, serves:2, tags:['魚','甘辛','蒲焼き','ご飯がすすむ'],
+      ingredients:[{name:'いわし（開き）',amount:'4尾'},{name:'小麦粉',amount:'大さじ2'},{name:'しょうゆ',amount:'大さじ2'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'油',amount:'少々'}],
+      steps:['いわしに小麦粉を薄くまぶす。','フライパンに油を熱し両面を焼く。','合わせ調味料を加え、煮絡める。'] },
+
+    { id:'r94', name:'鮭のちゃんちゃん焼き', emoji:'🐟', cat:'主菜', time:20, serves:2, tags:['魚','北海道','野菜たっぷり','味噌'],
+      ingredients:[{name:'生鮭',amount:'2切れ'},{name:'キャベツ',amount:'1/4個'},{name:'玉ねぎ',amount:'1/4個'},{name:'にんじん',amount:'1/3本'},{name:'もやし',amount:'1/2袋'},{name:'味噌',amount:'大さじ2'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'バター',amount:'10g'}],
+      steps:['野菜を食べやすく切る。','ホットプレートに野菜を敷き、鮭をのせる。','合わせ味噌をかけて蓋をし、10分蒸し焼き。','バターを散らして仕上げ。'] },
+
+    { id:'r95', name:'鯛のムニエル', emoji:'🐟', cat:'主菜', time:15, serves:2, tags:['魚','洋風','バター','レモン'],
+      ingredients:[{name:'鯛',amount:'2切れ'},{name:'塩こしょう',amount:'少々'},{name:'小麦粉',amount:'適量'},{name:'バター',amount:'15g'},{name:'オリーブオイル',amount:'大さじ1'},{name:'レモン',amount:'1/4個'}],
+      steps:['鯛に塩こしょうし、小麦粉を薄くまぶす。','オイルを熱し、皮目から4分焼く。','裏返してバターを加え、かけながら2分焼く。','レモンを添える。'] },
+
+    { id:'r96', name:'豚の角煮', emoji:'🥩', cat:'主菜', time:120, serves:4, tags:['豚肉','煮込み','週末','時間のある日'],
+      ingredients:[{name:'豚バラブロック',amount:'500g'},{name:'しょうが',amount:'1かけ'},{name:'長ねぎの青い部分',amount:'1本分'},{name:'しょうゆ',amount:'100ml'},{name:'みりん',amount:'100ml'},{name:'砂糖',amount:'大さじ4'},{name:'酒',amount:'200ml'},{name:'水',amount:'600ml'}],
+      steps:['豚バラを5cm角に切り、表面を焼く。','鍋に水・しょうが・ねぎを入れ、豚を1時間下茹で。','調味料を加えて弱火で40分煮込む。','煮汁にとろみが付いたら完成。'] },
+
+    { id:'r97', name:'豚キムチ', emoji:'🥬', cat:'主菜', time:15, serves:2, tags:['豚肉','キムチ','韓国風','ピリ辛'],
+      ingredients:[{name:'豚バラ薄切り',amount:'200g'},{name:'キムチ',amount:'150g'},{name:'もやし',amount:'1/2袋'},{name:'にら',amount:'1/2束'},{name:'しょうゆ',amount:'大さじ1'},{name:'ごま油',amount:'大さじ1'}],
+      steps:['豚肉を食べやすく切り炒める。','キムチを加えて炒める。','もやし・にらを加えさっと炒め、しょうゆで味付け。','ごま油を回しかける。'] },
+
+    { id:'r98', name:'ポークソテー', emoji:'🥩', cat:'主菜', time:15, serves:2, tags:['豚肉','洋風','時短'],
+      ingredients:[{name:'豚ロース厚切り',amount:'2枚'},{name:'塩こしょう',amount:'少々'},{name:'小麦粉',amount:'適量'},{name:'バター',amount:'10g'},{name:'白ワイン',amount:'大さじ2'},{name:'しょうゆ',amount:'大さじ1'}],
+      steps:['豚肉に塩こしょうし、小麦粉をまぶす。','バターを溶かしたフライパンで両面焼く。','白ワインとしょうゆを加えソースを作る。','ソースをかけて盛り付け。'] },
+
+    { id:'r99', name:'酢豚', emoji:'🥡', cat:'主菜', time:30, serves:3, tags:['豚肉','中華','甘酢'],
+      ingredients:[{name:'豚もも肉',amount:'300g'},{name:'玉ねぎ',amount:'1/2個'},{name:'ピーマン',amount:'2個'},{name:'にんじん',amount:'1/3本'},{name:'パイナップル',amount:'お好みで'},{name:'片栗粉',amount:'大さじ3'},{name:'酢',amount:'大さじ3'},{name:'ケチャップ',amount:'大さじ3'},{name:'砂糖',amount:'大さじ3'},{name:'しょうゆ',amount:'大さじ1'}],
+      steps:['豚肉に片栗粉をまぶし揚げ焼き。','野菜を炒める。','合わせ調味料を加え、豚を戻し絡める。'] },
+
+    { id:'r100', name:'ローストビーフ', emoji:'🥩', cat:'主菜', time:40, serves:4, tags:['牛肉','ごちそう','行事食'],
+      ingredients:[{name:'牛もも塊',amount:'500g'},{name:'塩こしょう',amount:'少々'},{name:'にんにく',amount:'1かけ'},{name:'オリーブオイル',amount:'大さじ2'},{name:'しょうゆ',amount:'大さじ3'},{name:'みりん',amount:'大さじ2'}],
+      steps:['牛肉を室温に戻す。','塩こしょう・にんにくをすり込み、全面を強火で焼き色付け。','アルミホイルに包み30分休ませる。','薄切りにし、しょうゆ・みりんのソースを添える。'] },
+
+    { id:'r101', name:'ステーキ', emoji:'🥩', cat:'主菜', time:15, serves:2, tags:['牛肉','ごちそう','週末'],
+      ingredients:[{name:'ステーキ肉',amount:'2枚'},{name:'塩こしょう',amount:'少々'},{name:'にんにく',amount:'1かけ'},{name:'バター',amount:'15g'},{name:'しょうゆ',amount:'大さじ1'}],
+      steps:['肉を室温に戻し塩こしょう。','フライパンを強火で熱し、両面を焼く（ミディアムなら片面1分半）。','アルミで3分休ませる。','バターとしょうゆでソースを作り、かける。'] },
+
+    { id:'r102', name:'牛肉のしぐれ煮', emoji:'🥩', cat:'主菜', time:20, serves:3, tags:['牛肉','甘辛','常備菜','ご飯がすすむ'],
+      ingredients:[{name:'牛肉薄切り',amount:'250g'},{name:'しょうが',amount:'1かけ'},{name:'しょうゆ',amount:'大さじ3'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ2'},{name:'酒',amount:'大さじ2'}],
+      steps:['しょうがを千切り。','鍋に調味料としょうがを煮立てる。','牛肉を加え、アクを取りながら10分煮る。'] },
+
+    { id:'r103', name:'ロールキャベツ', emoji:'🥬', cat:'主菜', time:60, serves:4, tags:['キャベツ','挽き肉','煮込み'],
+      ingredients:[{name:'キャベツ',amount:'8枚'},{name:'合いびき肉',amount:'300g'},{name:'玉ねぎ',amount:'1/2個'},{name:'卵',amount:'1個'},{name:'パン粉',amount:'大さじ3'},{name:'固形コンソメ',amount:'2個'},{name:'トマト缶',amount:'1缶'},{name:'塩こしょう',amount:'少々'}],
+      steps:['キャベツを下茹で。','肉だね（挽き肉・玉ねぎ・卵・パン粉・塩こしょう）を作る。','キャベツで包む。','鍋にトマト缶・水・コンソメと並べ、40分煮込む。'] },
+
+    { id:'r104', name:'煮込みミートボール', emoji:'🍖', cat:'主菜', time:30, serves:3, tags:['挽き肉','トマト','子ども'],
+      ingredients:[{name:'合いびき肉',amount:'300g'},{name:'玉ねぎ',amount:'1/4個'},{name:'卵',amount:'1個'},{name:'パン粉',amount:'大さじ2'},{name:'トマト缶',amount:'1缶'},{name:'ケチャップ',amount:'大さじ2'},{name:'コンソメ',amount:'1個'},{name:'塩こしょう',amount:'少々'}],
+      steps:['肉だねを混ぜ、一口大に丸める。','フライパンで焼き色付け。','トマト缶・ケチャップ・コンソメを加え15分煮る。'] },
+
+    { id:'r105', name:'メンチカツ', emoji:'🍖', cat:'主菜', time:30, serves:3, tags:['挽き肉','揚げ物','子ども'],
+      ingredients:[{name:'合いびき肉',amount:'300g'},{name:'玉ねぎ',amount:'1/2個'},{name:'卵',amount:'1個'},{name:'パン粉（衣用）',amount:'1カップ'},{name:'小麦粉',amount:'大さじ3'},{name:'卵（衣用）',amount:'1個'},{name:'塩こしょう',amount:'少々'},{name:'揚げ油',amount:'適量'}],
+      steps:['玉ねぎをみじん切り、挽き肉・卵と合わせ成形。','小麦粉→溶き卵→パン粉の順に衣付け。','170℃で5〜6分きつね色に揚げる。'] },
+
+    { id:'r106', name:'エビフライ', emoji:'🍤', cat:'主菜', time:25, serves:2, tags:['海老','揚げ物','子ども','洋風'],
+      ingredients:[{name:'大きめ海老',amount:'8尾'},{name:'塩こしょう',amount:'少々'},{name:'小麦粉',amount:'大さじ3'},{name:'卵',amount:'1個'},{name:'パン粉',amount:'1カップ'},{name:'揚げ油',amount:'適量'},{name:'タルタル or ソース',amount:'適量'}],
+      steps:['海老の背わたを取り、腹側に切り込みを入れてまっすぐに。','塩こしょうし、小麦粉→卵→パン粉の順で衣付け。','170℃で3分揚げる。'] },
+
+    { id:'r107', name:'カキフライ', emoji:'🦪', cat:'主菜', time:20, serves:2, tags:['牡蠣','揚げ物','冬'],
+      ingredients:[{name:'牡蠣（加熱用）',amount:'200g'},{name:'塩',amount:'少々'},{name:'小麦粉',amount:'大さじ2'},{name:'卵',amount:'1個'},{name:'パン粉',amount:'1カップ'},{name:'揚げ油',amount:'適量'},{name:'レモン・タルタル',amount:'適量'}],
+      steps:['牡蠣を塩水で洗い水気を拭く。','小麦粉→卵→パン粉で衣付け。','180℃で2〜3分揚げる。','レモンとタルタルを添える。'] },
+
+    { id:'r108', name:'鶏のハーブ焼き', emoji:'🌿', cat:'主菜', time:25, serves:2, tags:['鶏肉','洋風','ハーブ'],
+      ingredients:[{name:'鶏もも肉',amount:'1枚'},{name:'塩こしょう',amount:'少々'},{name:'にんにく',amount:'1かけ'},{name:'ローズマリー or タイム',amount:'少々'},{name:'オリーブオイル',amount:'大さじ2'},{name:'レモン',amount:'1/4個'}],
+      steps:['鶏肉に塩こしょう・にんにくをすり込む。','ハーブとオイルを絡め30分置く。','皮目から中火で5分、裏返して蓋をして5分。','レモンを添える。'] },
+
+    { id:'r109', name:'鶏のトマト煮', emoji:'🍅', cat:'主菜', time:30, serves:3, tags:['鶏肉','トマト','洋風'],
+      ingredients:[{name:'鶏もも肉',amount:'300g'},{name:'玉ねぎ',amount:'1/2個'},{name:'にんにく',amount:'1かけ'},{name:'トマト缶',amount:'1缶'},{name:'コンソメ',amount:'1個'},{name:'塩こしょう',amount:'少々'},{name:'オリーブオイル',amount:'大さじ1'},{name:'バジル',amount:'少々'}],
+      steps:['鶏肉を一口大、玉ねぎは薄切り。','鶏を炒め色付け、玉ねぎとにんにくを加える。','トマト缶・コンソメを加え20分煮る。','塩こしょう・バジルで仕上げ。'] },
+
+    { id:'r110', name:'鶏手羽元の煮込み', emoji:'🍗', cat:'主菜', time:40, serves:3, tags:['鶏肉','煮込み','甘辛'],
+      ingredients:[{name:'鶏手羽元',amount:'8本'},{name:'ゆで卵',amount:'4個'},{name:'しょうゆ',amount:'大さじ4'},{name:'みりん',amount:'大さじ3'},{name:'酒',amount:'大さじ2'},{name:'砂糖',amount:'大さじ2'},{name:'酢',amount:'大さじ3'},{name:'水',amount:'300ml'}],
+      steps:['手羽元の骨に沿って切り込み。','鍋に調味料・水を入れ煮立て、手羽元を加える。','ゆで卵も加え、落し蓋で30分煮る。','煮汁が半分になったら完成。'] },
+
+    { id:'r111', name:'サバの竜田揚げ', emoji:'🐟', cat:'主菜', time:20, serves:2, tags:['魚','揚げ物','和食'],
+      ingredients:[{name:'サバ',amount:'2切れ'},{name:'しょうゆ',amount:'大さじ2'},{name:'酒',amount:'大さじ1'},{name:'しょうが',amount:'1かけ'},{name:'片栗粉',amount:'大さじ4'},{name:'揚げ油',amount:'適量'},{name:'レモン',amount:'1/4個'}],
+      steps:['サバを一口大に切り、しょうゆ・酒・しょうがに15分漬ける。','片栗粉をまぶす。','170℃で4分揚げる。','レモンを添える。'] },
+
+    { id:'r112', name:'豆腐ハンバーグ', emoji:'🎋', cat:'主菜', time:25, serves:2, tags:['豆腐','挽き肉','ヘルシー','子ども'],
+      ingredients:[{name:'木綿豆腐',amount:'1/2丁'},{name:'鶏ひき肉',amount:'200g'},{name:'玉ねぎ',amount:'1/4個'},{name:'パン粉',amount:'大さじ2'},{name:'卵',amount:'1個'},{name:'塩こしょう',amount:'少々'},{name:'ポン酢・大根おろし',amount:'適量'}],
+      steps:['豆腐は水切り（10分）。','玉ねぎみじん切りをレンジ1分。','すべて混ぜてよく練り、成形。','フライパンで両面焼き、蓋をして5分蒸し焼き。','ポン酢と大根おろしで。'] },
+
+    { id:'r113', name:'豚肉と厚揚げの煮物', emoji:'🥘', cat:'主菜', time:25, serves:3, tags:['豚肉','厚揚げ','煮物'],
+      ingredients:[{name:'豚バラ薄切り',amount:'200g'},{name:'厚揚げ',amount:'1枚'},{name:'長ねぎ',amount:'1本'},{name:'しょうゆ',amount:'大さじ3'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'だし',amount:'200ml'}],
+      steps:['厚揚げは1cm厚、ねぎは斜め切り。','鍋で豚を炒め、厚揚げ・ねぎを加える。','だしと調味料を加え15分煮る。'] },
+
+    { id:'r114', name:'タラのホイル焼き', emoji:'🐟', cat:'主菜', time:20, serves:2, tags:['魚','タラ','きのこ','蒸し焼き'],
+      ingredients:[{name:'タラ',amount:'2切れ'},{name:'しめじ',amount:'1/2パック'},{name:'玉ねぎ',amount:'1/4個'},{name:'バター',amount:'10g'},{name:'塩こしょう',amount:'少々'},{name:'しょうゆ',amount:'大さじ1'},{name:'レモン',amount:'1/4個'}],
+      steps:['アルミホイルに玉ねぎ・タラ・きのこ・バターをのせる。','塩こしょうし、しょうゆを垂らし、包む。','オーブントースターで15分焼く（または魚焼きグリル）。','レモンを添える。'] },
+
+    { id:'r115', name:'鯛めし', emoji:'🐟', cat:'主菜', time:60, serves:4, tags:['魚','炊き込み','行事食','ごちそう'],
+      ingredients:[{name:'米',amount:'2合'},{name:'鯛',amount:'1切れ（200g）'},{name:'塩',amount:'少々'},{name:'昆布',amount:'10cm'},{name:'酒',amount:'大さじ2'},{name:'しょうゆ',amount:'大さじ1'},{name:'みりん',amount:'大さじ1'},{name:'水',amount:'規定量'}],
+      steps:['鯛に塩をふり10分置き、焼き色をつける。','米を研ぎ、昆布・水・調味料・鯛を入れて炊く。','炊き上がったら骨を取り、身をほぐして混ぜる。'] },
+
+    { id:'r116', name:'鶏つくね', emoji:'🍢', cat:'主菜', time:20, serves:2, tags:['鶏肉','つくね','甘辛','お弁当'],
+      ingredients:[{name:'鶏ひき肉',amount:'300g'},{name:'長ねぎ',amount:'1/2本'},{name:'しょうが',amount:'少々'},{name:'片栗粉',amount:'大さじ1'},{name:'塩',amount:'少々'},{name:'しょうゆ',amount:'大さじ2'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'卵黄',amount:'お好みで'}],
+      steps:['ねぎとしょうがをみじん切り。','ひき肉・ねぎ・しょうが・片栗粉・塩を練る。','小判形に成形し、フライパンで両面焼く。','合わせ調味料を加え絡める。'] },
+
+    { id:'r117', name:'ホタテのバター焼き', emoji:'🦪', cat:'主菜', time:10, serves:2, tags:['ホタテ','バター','時短','洋風'],
+      ingredients:[{name:'ホタテ貝柱',amount:'8個'},{name:'塩こしょう',amount:'少々'},{name:'バター',amount:'15g'},{name:'しょうゆ',amount:'大さじ1'},{name:'レモン',amount:'1/4個'}],
+      steps:['ホタテに塩こしょう。','バターを溶かしたフライパンで両面を1〜2分焼く。','しょうゆを回しかけ、レモンを添える。'] },
+
+    { id:'r118', name:'豚の生姜煮', emoji:'🐖', cat:'主菜', time:30, serves:3, tags:['豚肉','しょうが','煮物'],
+      ingredients:[{name:'豚バラブロック',amount:'300g'},{name:'しょうが',amount:'1かけ'},{name:'長ねぎ',amount:'1本'},{name:'しょうゆ',amount:'大さじ3'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'酒',amount:'大さじ3'},{name:'水',amount:'300ml'}],
+      steps:['豚肉を一口大、ねぎは斜め切り。','鍋で豚を炒め、水・調味料・しょうがを加える。','落し蓋で25分煮る。'] },
+
+    { id:'r119', name:'牛肉とごぼうの炒め煮', emoji:'🥢', cat:'主菜', time:25, serves:3, tags:['牛肉','ごぼう','ご飯がすすむ'],
+      ingredients:[{name:'牛肉薄切り',amount:'200g'},{name:'ごぼう',amount:'1本'},{name:'にんじん',amount:'1/2本'},{name:'しょうゆ',amount:'大さじ3'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'だし',amount:'150ml'}],
+      steps:['ごぼうとにんじんをささがき。','鍋で牛肉を炒め、野菜を加える。','だしと調味料を加え15分煮る。'] },
+
+    { id:'r120', name:'鶏ささみの梅肉和え', emoji:'🌸', cat:'主菜', time:15, serves:2, tags:['鶏肉','梅','さっぱり','ヘルシー'],
+      ingredients:[{name:'鶏ささみ',amount:'3本'},{name:'酒',amount:'大さじ1'},{name:'梅干し',amount:'2個'},{name:'しょうゆ',amount:'小さじ1'},{name:'みりん',amount:'小さじ1'},{name:'大葉',amount:'5枚'}],
+      steps:['ささみに酒を振りレンジで2分加熱。','粗熱が取れたら手で裂く。','梅干しの種を取り叩き、しょうゆ・みりんと合わせる。','ささみを和え、大葉の千切りを散らす。'] },
+
+    // ─── 丼もの (r121-r128) ──────────────────────────────────────
+    { id:'r121', name:'カツ丼', emoji:'🍱', cat:'丼もの', time:20, serves:2, tags:['豚肉','カツ','卵','丼'],
+      ingredients:[{name:'とんかつ（既製 or 揚げ）',amount:'2枚'},{name:'玉ねぎ',amount:'1/2個'},{name:'卵',amount:'3個'},{name:'だし',amount:'200ml'},{name:'しょうゆ',amount:'大さじ2'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'ご飯',amount:'2杯'},{name:'三つ葉',amount:'少々'}],
+      steps:['玉ねぎを薄切り、カツを食べやすく切る。','鍋にだし・調味料を入れ玉ねぎを煮る。','カツをのせ、溶き卵を2/3回し入れ、残りを加える。','半熟でご飯にのせ、三つ葉を散らす。'] },
+
+    { id:'r122', name:'天丼', emoji:'🍤', cat:'丼もの', time:25, serves:2, tags:['海老','天ぷら','丼'],
+      ingredients:[{name:'海老',amount:'4尾'},{name:'茄子',amount:'1本'},{name:'ピーマン',amount:'1個'},{name:'天ぷら衣',amount:'適量'},{name:'しょうゆ',amount:'大さじ2'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'だし',amount:'100ml'},{name:'ご飯',amount:'2杯'}],
+      steps:['海老と野菜を天ぷらに。','天つゆ（しょうゆ・みりん・砂糖・だし）を煮立てる。','ご飯に天ぷらをのせ、天つゆをかける。'] },
+
+    { id:'r123', name:'海鮮丼', emoji:'🍣', cat:'丼もの', time:10, serves:2, tags:['刺身','魚','丼','ごちそう'],
+      ingredients:[{name:'お刺身盛り合わせ',amount:'200g'},{name:'ご飯',amount:'2杯'},{name:'寿司酢',amount:'大さじ2'},{name:'しょうゆ',amount:'適量'},{name:'わさび',amount:'少々'},{name:'海苔・大葉',amount:'適量'}],
+      steps:['炊きたてご飯に寿司酢を混ぜる。','器に酢飯を盛り、刺身を並べる。','しょうゆ・わさびで。'],
+      note:'生ものなので乳幼児は避けて。' },
+
+    { id:'r124', name:'ネギトロ丼', emoji:'🍣', cat:'丼もの', time:5, serves:2, tags:['まぐろ','丼','時短','生'],
+      ingredients:[{name:'まぐろたたき',amount:'200g'},{name:'ご飯',amount:'2杯'},{name:'長ねぎ',amount:'1/4本'},{name:'しょうゆ',amount:'大さじ1'},{name:'わさび',amount:'少々'},{name:'刻み海苔',amount:'適量'}],
+      steps:['まぐろたたきとねぎ（みじん切り）を合わせる。','ご飯にのせ、しょうゆとわさびをかける。','海苔を散らす。'] },
+
+    { id:'r125', name:'豚丼', emoji:'🥩', cat:'丼もの', time:15, serves:2, tags:['豚肉','甘辛','丼','時短'],
+      ingredients:[{name:'豚バラ薄切り',amount:'200g'},{name:'玉ねぎ',amount:'1/2個'},{name:'しょうゆ',amount:'大さじ3'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'しょうが',amount:'少々'},{name:'ご飯',amount:'2杯'},{name:'紅しょうが',amount:'適量'}],
+      steps:['玉ねぎを薄切り。','豚肉を炒め、玉ねぎとしょうがを加える。','しょうゆ・みりん・砂糖を加え煮絡める。','ご飯にのせ紅しょうがを添える。'] },
+
+    { id:'r126', name:'三色そぼろ丼', emoji:'🎨', cat:'丼もの', time:20, serves:2, tags:['鶏肉','卵','インゲン','お弁当','子ども'],
+      ingredients:[{name:'鶏ひき肉',amount:'200g'},{name:'卵',amount:'2個'},{name:'インゲン',amount:'6本'},{name:'しょうゆ',amount:'大さじ2'},{name:'みりん',amount:'大さじ1'},{name:'砂糖',amount:'大さじ1'},{name:'ご飯',amount:'2杯'}],
+      steps:['鶏そぼろを作る（ひき肉・調味料で炒り煮）。','卵は甘めに炒り卵。','インゲンを塩茹でして小口切り。','ご飯に3色をのせる。'] },
+
+    { id:'r127', name:'中華丼', emoji:'🥘', cat:'丼もの', time:20, serves:2, tags:['中華','あんかけ','野菜たっぷり'],
+      ingredients:[{name:'豚肉',amount:'100g'},{name:'白菜',amount:'2枚'},{name:'にんじん',amount:'1/3本'},{name:'しいたけ',amount:'2個'},{name:'うずらの卵',amount:'6個'},{name:'鶏がらスープ',amount:'400ml'},{name:'しょうゆ',amount:'大さじ1'},{name:'オイスターソース',amount:'大さじ1'},{name:'片栗粉',amount:'大さじ1'},{name:'ご飯',amount:'2杯'}],
+      steps:['具材を一口大に切る。','豚と野菜を炒め、スープと調味料を加える。','うずらを加え、水溶き片栗粉でとろみ。','ご飯にあんをかける。'] },
+
+    { id:'r128', name:'まぐろ漬け丼', emoji:'🐟', cat:'丼もの', time:15, serves:2, tags:['まぐろ','漬け','丼','生'],
+      ingredients:[{name:'まぐろ刺身',amount:'200g'},{name:'しょうゆ',amount:'大さじ3'},{name:'みりん',amount:'大さじ1'},{name:'酒',amount:'大さじ1'},{name:'ご飯',amount:'2杯'},{name:'大葉・白ごま',amount:'適量'}],
+      steps:['まぐろを薄切り。','しょうゆ・みりん・酒を合わせ10分漬ける。','ご飯にのせ、大葉とごまを散らす。'] },
+
+    // ─── 一品 (r129-r138) ──────────────────────────────────────
+    { id:'r129', name:'すき焼き', emoji:'🍲', cat:'一品', time:30, serves:4, tags:['牛肉','鍋','行事食','冬'],
+      ingredients:[{name:'牛肉（すき焼き用）',amount:'400g'},{name:'白菜',amount:'1/4個'},{name:'長ねぎ',amount:'2本'},{name:'しらたき',amount:'1袋'},{name:'豆腐',amount:'1丁'},{name:'しいたけ',amount:'4個'},{name:'しょうゆ',amount:'100ml'},{name:'みりん',amount:'100ml'},{name:'砂糖',amount:'大さじ3'},{name:'酒',amount:'100ml'},{name:'溶き卵',amount:'適量'}],
+      steps:['割り下（しょうゆ・みりん・砂糖・酒）を合わせる。','鍋で牛肉を軽く焼き、割り下を加える。','野菜・豆腐・しらたきを加え煮る。','溶き卵につけていただく。'] },
+
+    { id:'r130', name:'しゃぶしゃぶ', emoji:'🍲', cat:'一品', time:30, serves:4, tags:['牛肉','鍋','家族で','冬'],
+      ingredients:[{name:'牛肉しゃぶしゃぶ用',amount:'400g'},{name:'白菜',amount:'1/4個'},{name:'春菊',amount:'1束'},{name:'長ねぎ',amount:'1本'},{name:'しいたけ',amount:'4個'},{name:'豆腐',amount:'1丁'},{name:'昆布',amount:'10cm'},{name:'ポン酢・ごまだれ',amount:'適量'}],
+      steps:['鍋に水と昆布でだしをとる。','野菜を切って並べる。','だしで肉と野菜をさっとくぐらせ、たれで食べる。'] },
+
+    { id:'r131', name:'寄せ鍋', emoji:'🍲', cat:'一品', time:30, serves:4, tags:['鍋','野菜たっぷり','家族で','冬'],
+      ingredients:[{name:'鶏もも',amount:'300g'},{name:'鱈',amount:'2切れ'},{name:'白菜',amount:'1/4個'},{name:'春菊',amount:'1束'},{name:'長ねぎ',amount:'1本'},{name:'しいたけ',amount:'4個'},{name:'豆腐',amount:'1丁'},{name:'だし',amount:'1.5L'},{name:'しょうゆ',amount:'大さじ4'},{name:'みりん',amount:'大さじ2'}],
+      steps:['野菜を食べやすく切る。','鍋にだしと調味料を入れ煮立てる。','具材を順に入れて煮ながら食べる。'] },
+
+    { id:'r132', name:'カレーうどん', emoji:'🍜', cat:'一品', time:15, serves:2, tags:['うどん','カレー','残り物活用'],
+      ingredients:[{name:'うどん',amount:'2玉'},{name:'カレー残り or カレールー',amount:'お玉2杯'},{name:'だし',amount:'400ml'},{name:'めんつゆ',amount:'大さじ2'},{name:'長ねぎ',amount:'適量'}],
+      steps:['だしを温め、カレーとめんつゆを加える。','うどんを茹でる。','丼に盛り、ねぎを散らす。'] },
+
+    { id:'r133', name:'鍋焼きうどん', emoji:'🍲', cat:'一品', time:20, serves:1, tags:['うどん','一人鍋','冬'],
+      ingredients:[{name:'うどん',amount:'1玉'},{name:'鶏もも',amount:'50g'},{name:'ねぎ',amount:'1/2本'},{name:'卵',amount:'1個'},{name:'しいたけ',amount:'1個'},{name:'かまぼこ',amount:'2切れ'},{name:'めんつゆ',amount:'400ml'}],
+      steps:['土鍋にめんつゆを入れ煮立てる。','鶏・しいたけ・うどんを加え煮る。','卵を割り入れ、ねぎとかまぼこをのせて蓋をして2分。'] },
+
+    { id:'r134', name:'もつ煮込み', emoji:'🍲', cat:'一品', time:90, serves:4, tags:['もつ','煮込み','居酒屋','週末'],
+      ingredients:[{name:'豚モツ',amount:'400g'},{name:'大根',amount:'1/3本'},{name:'にんじん',amount:'1/2本'},{name:'こんにゃく',amount:'1枚'},{name:'長ねぎ',amount:'1本'},{name:'味噌',amount:'大さじ4'},{name:'しょうゆ',amount:'大さじ1'},{name:'みりん',amount:'大さじ2'},{name:'しょうが',amount:'1かけ'},{name:'水',amount:'1L'}],
+      steps:['モツを下茹で（15分×2回）。','野菜を切り、こんにゃくはちぎる。','鍋にモツ・野菜・水・しょうがを入れ60分煮る。','味噌・しょうゆ・みりんで味付け、10分煮る。'] },
+
+    { id:'r135', name:'ピザトースト', emoji:'🍕', cat:'一品', time:10, serves:2, tags:['パン','朝食','時短','子ども'],
+      ingredients:[{name:'食パン',amount:'2枚'},{name:'ケチャップ',amount:'大さじ2'},{name:'ピザ用チーズ',amount:'適量'},{name:'ハム or ベーコン',amount:'2枚'},{name:'玉ねぎ・ピーマン',amount:'少々'}],
+      steps:['食パンにケチャップを塗る。','薄切り具材をのせ、チーズを散らす。','トースターで5〜7分焼く。'] },
+
+    { id:'r136', name:'サンドイッチ', emoji:'🥪', cat:'一品', time:10, serves:2, tags:['パン','お弁当','時短'],
+      ingredients:[{name:'食パン',amount:'4枚'},{name:'ハム',amount:'4枚'},{name:'卵',amount:'2個'},{name:'きゅうり',amount:'1/2本'},{name:'マヨネーズ',amount:'大さじ3'},{name:'バター',amount:'適量'}],
+      steps:['ゆで卵を作り、マヨネーズと合わせる。','食パンにバターを塗り、具材を挟む。','食べやすく切る。'] },
+
+    { id:'r137', name:'ホットサンド', emoji:'🥙', cat:'一品', time:10, serves:2, tags:['パン','チーズ','朝食'],
+      ingredients:[{name:'食パン',amount:'4枚'},{name:'ハム',amount:'4枚'},{name:'チーズ',amount:'2枚'},{name:'マヨネーズ・マスタード',amount:'適量'}],
+      steps:['具材を食パンに挟む。','ホットサンドメーカー（またはフライパン）で両面を押し焼き。','食べやすく切る。'] },
+
+    { id:'r138', name:'冷製パスタ', emoji:'🍝', cat:'一品', time:15, serves:2, tags:['パスタ','夏','冷たい','トマト'],
+      ingredients:[{name:'カッペリーニ',amount:'200g'},{name:'トマト',amount:'2個'},{name:'バジル',amount:'少々'},{name:'にんにく',amount:'1かけ'},{name:'オリーブオイル',amount:'大さじ3'},{name:'塩こしょう',amount:'少々'},{name:'レモン汁',amount:'小さじ1'}],
+      steps:['トマトを湯むきして角切り、にんにくみじん切り、バジル刻み。','オイル・塩こしょう・レモンで和える。','パスタを茹でて冷水で締め、水気を切って和える。'] },
+
+    // ─── 副菜 (r139-r158) ──────────────────────────────────────
+    { id:'r139', name:'マカロニサラダ', emoji:'🥗', cat:'副菜', time:20, serves:3, tags:['マカロニ','マヨ','洋風','作り置き'],
+      ingredients:[{name:'マカロニ',amount:'100g'},{name:'きゅうり',amount:'1本'},{name:'ハム',amount:'3枚'},{name:'玉ねぎ',amount:'1/4個'},{name:'マヨネーズ',amount:'大さじ3'},{name:'塩こしょう',amount:'少々'}],
+      steps:['マカロニを茹でて冷ます。','きゅうり小口切り塩もみ、玉ねぎみじん切り水さらし、ハム短冊。','すべて混ぜ、マヨネーズ・塩こしょうで和える。'] },
+
+    { id:'r140', name:'春雨サラダ', emoji:'🥢', cat:'副菜', time:15, serves:3, tags:['春雨','中華','さっぱり'],
+      ingredients:[{name:'春雨（乾）',amount:'50g'},{name:'きゅうり',amount:'1本'},{name:'ハム',amount:'2枚'},{name:'卵',amount:'1個'},{name:'しょうゆ',amount:'大さじ2'},{name:'酢',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'ごま油',amount:'大さじ1'}],
+      steps:['春雨を戻し、食べやすく切る。','きゅうり・ハムは千切り、卵は錦糸卵。','すべて混ぜ、合わせ調味料で和える。'] },
+
+    { id:'r141', name:'コールスロー', emoji:'🥬', cat:'副菜', time:15, serves:3, tags:['キャベツ','マヨ','洋風'],
+      ingredients:[{name:'キャベツ',amount:'1/4個'},{name:'にんじん',amount:'1/3本'},{name:'コーン',amount:'大さじ3'},{name:'マヨネーズ',amount:'大さじ3'},{name:'酢',amount:'小さじ1'},{name:'塩こしょう',amount:'少々'}],
+      steps:['キャベツとにんじんを千切り、塩もみして水気絞る。','コーンを加え、マヨ・酢・塩こしょうで和える。'] },
+
+    { id:'r142', name:'なすの煮浸し', emoji:'🍆', cat:'副菜', time:15, serves:3, tags:['なす','和食','作り置き'],
+      ingredients:[{name:'なす',amount:'3本'},{name:'だし',amount:'200ml'},{name:'しょうゆ',amount:'大さじ2'},{name:'みりん',amount:'大さじ1'},{name:'砂糖',amount:'小さじ1'},{name:'しょうが',amount:'少々'}],
+      steps:['なすを縦半分、皮に切り込み、素揚げか焼く。','鍋にだしと調味料を煮立てる。','なすを加え、5分煮て冷ます。'] },
+
+    { id:'r143', name:'アスパラのベーコン巻き', emoji:'🥓', cat:'副菜', time:15, serves:2, tags:['アスパラ','ベーコン','お弁当'],
+      ingredients:[{name:'アスパラ',amount:'6本'},{name:'ベーコン',amount:'6枚'},{name:'塩こしょう',amount:'少々'},{name:'油',amount:'少々'}],
+      steps:['アスパラは固い部分を落とし、下茹で。','ベーコンでアスパラを巻く。','フライパンで巻き終わりから焼く。','塩こしょうで味を整える。'] },
+
+    { id:'r144', name:'オクラのお浸し', emoji:'🌿', cat:'副菜', time:10, serves:2, tags:['オクラ','和食','夏','時短'],
+      ingredients:[{name:'オクラ',amount:'10本'},{name:'だし',amount:'大さじ3'},{name:'しょうゆ',amount:'大さじ1'},{name:'鰹節',amount:'少々'}],
+      steps:['オクラを塩でこすり、さっと茹でる。','食べやすく切る。','だしとしょうゆに浸し、鰹節を散らす。'] },
+
+    { id:'r145', name:'きゅうりとわかめの酢の物', emoji:'🥒', cat:'副菜', time:10, serves:2, tags:['きゅうり','わかめ','酢の物','さっぱり'],
+      ingredients:[{name:'きゅうり',amount:'1本'},{name:'乾燥わかめ',amount:'大さじ1'},{name:'酢',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'しょうゆ',amount:'小さじ1'},{name:'塩',amount:'少々'}],
+      steps:['きゅうりは薄切り塩もみ、わかめは水で戻す。','酢・砂糖・しょうゆを混ぜ、きゅうりとわかめを和える。'] },
+
+    { id:'r146', name:'れんこんのきんぴら', emoji:'🪷', cat:'副菜', time:15, serves:3, tags:['れんこん','和食','作り置き'],
+      ingredients:[{name:'れんこん',amount:'200g'},{name:'ごま油',amount:'大さじ1'},{name:'しょうゆ',amount:'大さじ1.5'},{name:'みりん',amount:'大さじ1'},{name:'砂糖',amount:'小さじ1'},{name:'白ごま',amount:'少々'},{name:'赤唐辛子',amount:'お好みで'}],
+      steps:['れんこんを薄切り、水にさらす。','ごま油で炒め、調味料を加え水分飛ばす。','ごまをふって完成。'] },
+
+    { id:'r147', name:'里芋の煮物', emoji:'🥔', cat:'副菜', time:25, serves:3, tags:['里芋','煮物','和食'],
+      ingredients:[{name:'里芋',amount:'8個'},{name:'しょうゆ',amount:'大さじ2'},{name:'みりん',amount:'大さじ1'},{name:'砂糖',amount:'大さじ1'},{name:'だし',amount:'300ml'}],
+      steps:['里芋の皮をむき、ぬめりを取るために下茹で。','鍋にだし・調味料を入れ、里芋を加える。','落し蓋で15分煮る。'] },
+
+    { id:'r148', name:'大学いも', emoji:'🍠', cat:'副菜', time:20, serves:3, tags:['さつまいも','甘い','子ども','秋'],
+      ingredients:[{name:'さつまいも',amount:'中1本'},{name:'砂糖',amount:'大さじ4'},{name:'しょうゆ',amount:'小さじ1'},{name:'水',amount:'大さじ2'},{name:'黒ごま',amount:'少々'},{name:'揚げ油',amount:'適量'}],
+      steps:['さつまいもを乱切り、水にさらす。','170℃で5分揚げる。','鍋で砂糖・しょうゆ・水を煮立て、みつを作る。','揚げたいもを絡め、黒ごまを散らす。'] },
+
+    { id:'r149', name:'もやしのナムル', emoji:'🥗', cat:'副菜', time:10, serves:3, tags:['もやし','韓国風','時短','作り置き'],
+      ingredients:[{name:'もやし',amount:'1袋'},{name:'にんにく',amount:'少々'},{name:'ごま油',amount:'大さじ1'},{name:'しょうゆ',amount:'小さじ1'},{name:'塩',amount:'少々'},{name:'白ごま',amount:'少々'}],
+      steps:['もやしを塩茹で1分、水気を切る。','調味料とにんにくを混ぜ和える。','ごまをふる。'] },
+
+    { id:'r150', name:'ピーマンの肉詰め', emoji:'🫑', cat:'副菜', time:30, serves:2, tags:['ピーマン','挽き肉','洋風','子ども'],
+      ingredients:[{name:'ピーマン',amount:'4個'},{name:'合いびき肉',amount:'150g'},{name:'玉ねぎ',amount:'1/4個'},{name:'卵',amount:'1個'},{name:'パン粉',amount:'大さじ2'},{name:'塩こしょう',amount:'少々'},{name:'小麦粉',amount:'少々'},{name:'ケチャップ・ソース',amount:'適量'}],
+      steps:['ピーマンを半分に切り種を取る。','肉だねを混ぜピーマンに詰める（小麦粉つけてから詰める）。','フライパンで肉側から焼き、裏返し蓋をして5分蒸し焼き。','ケチャップ・ソースで。'] },
+
+    { id:'r151', name:'野菜炒め', emoji:'🥘', cat:'副菜', time:10, serves:2, tags:['野菜たっぷり','時短','炒め物'],
+      ingredients:[{name:'キャベツ',amount:'2枚'},{name:'もやし',amount:'1/2袋'},{name:'にんじん',amount:'1/3本'},{name:'豚バラ',amount:'80g'},{name:'しょうゆ',amount:'大さじ1'},{name:'塩こしょう',amount:'少々'},{name:'ごま油',amount:'大さじ1'}],
+      steps:['野菜を食べやすく切る。','豚肉を炒め、にんじんから順に加える。','しょうゆ・塩こしょうで味付け、ごま油で仕上げ。'] },
+
+    { id:'r152', name:'ほうれん草のごま和え', emoji:'🥬', cat:'副菜', time:10, serves:2, tags:['ほうれん草','ごま','和食'],
+      ingredients:[{name:'ほうれん草',amount:'1束'},{name:'白ごま',amount:'大さじ2'},{name:'しょうゆ',amount:'大さじ1'},{name:'砂糖',amount:'大さじ1'}],
+      steps:['ほうれん草を塩茹でし、水気を絞り4cm幅に切る。','ごまをすり、しょうゆ・砂糖と合わせる。','ほうれん草を和える。'] },
+
+    { id:'r153', name:'キャロットラペ', emoji:'🥕', cat:'副菜', time:10, serves:3, tags:['にんじん','洋風','作り置き'],
+      ingredients:[{name:'にんじん',amount:'2本'},{name:'レモン汁',amount:'大さじ1'},{name:'オリーブオイル',amount:'大さじ2'},{name:'塩こしょう',amount:'少々'},{name:'レーズン',amount:'お好みで'}],
+      steps:['にんじんを千切りにして塩もみ。','水気を絞り、調味料で和える。','冷蔵庫で30分以上なじませる。'] },
+
+    { id:'r154', name:'きのこのバター炒め', emoji:'🍄', cat:'副菜', time:10, serves:2, tags:['きのこ','バター','時短'],
+      ingredients:[{name:'しめじ',amount:'1パック'},{name:'しいたけ',amount:'3個'},{name:'えのき',amount:'1/2袋'},{name:'バター',amount:'15g'},{name:'しょうゆ',amount:'大さじ1'},{name:'黒こしょう',amount:'少々'}],
+      steps:['きのこをほぐしたり食べやすく切る。','バターを溶かしきのこを炒める。','しょうゆと黒こしょうで味付け。'] },
+
+    { id:'r155', name:'ブロッコリーの塩茹で', emoji:'🥦', cat:'副菜', time:8, serves:2, tags:['ブロッコリー','時短','シンプル'],
+      ingredients:[{name:'ブロッコリー',amount:'1/2個'},{name:'塩',amount:'小さじ1'}],
+      steps:['ブロッコリーを小房に分ける。','塩を入れた熱湯で2分茹でる。','ザルに上げて水気を切る。'] },
+
+    { id:'r156', name:'ミニトマトのマリネ', emoji:'🍅', cat:'副菜', time:10, serves:2, tags:['トマト','洋風','さっぱり','作り置き'],
+      ingredients:[{name:'ミニトマト',amount:'20個'},{name:'オリーブオイル',amount:'大さじ2'},{name:'酢',amount:'大さじ1'},{name:'塩こしょう',amount:'少々'},{name:'バジル',amount:'少々'}],
+      steps:['ミニトマトを半分に切る。','調味料と和える。','冷蔵庫で30分なじませる。'] },
+
+    { id:'r157', name:'かぶの浅漬け', emoji:'🥬', cat:'副菜', time:10, serves:3, tags:['かぶ','漬物','時短'],
+      ingredients:[{name:'かぶ',amount:'3個'},{name:'塩',amount:'小さじ1/2'},{name:'昆布',amount:'少々'},{name:'柚子の皮',amount:'お好みで'}],
+      steps:['かぶを薄切り、葉も刻む。','ポリ袋に全て入れ塩をまぶす。','10分以上置いて完成。'] },
+
+    { id:'r158', name:'枝豆', emoji:'🫛', cat:'副菜', time:10, serves:2, tags:['枝豆','夏','シンプル','子ども'],
+      ingredients:[{name:'枝豆',amount:'300g'},{name:'塩',amount:'大さじ1'}],
+      steps:['枝豆の両端をキッチンばさみで切る。','塩もみしてから塩を入れた熱湯で4分茹でる。','ザルに上げ冷ます。'] },
+
+    // ─── 汁物 (r159-r165) ──────────────────────────────────────
+    { id:'r159', name:'なめこの味噌汁', emoji:'🍄', cat:'汁物', time:10, serves:2, tags:['味噌','なめこ','時短','優しい'],
+      ingredients:[{name:'なめこ',amount:'1袋'},{name:'豆腐',amount:'1/4丁'},{name:'だし',amount:'500ml'},{name:'味噌',amount:'大さじ2'},{name:'長ねぎ',amount:'少々'}],
+      steps:['なめこをさっと洗う。','だしを温め、豆腐となめこを加え2分煮る。','味噌を溶き入れ、ねぎを散らす。'] },
+
+    { id:'r160', name:'しじみの味噌汁', emoji:'🐚', cat:'汁物', time:15, serves:2, tags:['しじみ','味噌','二日酔い','栄養'],
+      ingredients:[{name:'しじみ',amount:'200g'},{name:'だし（または水）',amount:'500ml'},{name:'味噌',amount:'大さじ2'}],
+      steps:['しじみを砂抜きする（塩水で1時間）。','鍋に水としじみを入れ、中火で加熱。','しじみが開いたら味噌を溶き入れる。'] },
+
+    { id:'r161', name:'あさりの味噌汁', emoji:'🦪', cat:'汁物', time:15, serves:2, tags:['あさり','味噌','春','栄養'],
+      ingredients:[{name:'あさり',amount:'200g'},{name:'だし（または水）',amount:'500ml'},{name:'味噌',amount:'大さじ2'},{name:'三つ葉',amount:'少々'}],
+      steps:['あさりを砂抜きする（塩水で1時間）。','鍋に水とあさりを入れ、中火で加熱。','あさりが開いたら味噌を溶き、三つ葉を散らす。'] },
+
+    { id:'r162', name:'ミネストローネ', emoji:'🍅', cat:'汁物', time:30, serves:4, tags:['トマト','野菜たっぷり','洋風'],
+      ingredients:[{name:'ベーコン',amount:'80g'},{name:'玉ねぎ',amount:'1/2個'},{name:'にんじん',amount:'1/2本'},{name:'じゃがいも',amount:'1個'},{name:'セロリ',amount:'1/2本'},{name:'トマト缶',amount:'1缶'},{name:'コンソメ',amount:'1個'},{name:'水',amount:'600ml'},{name:'塩こしょう',amount:'少々'}],
+      steps:['野菜とベーコンを1cm角に切る。','鍋でベーコンを炒め、野菜を加える。','トマト缶・水・コンソメを加え20分煮る。','塩こしょうで味を整える。'] },
+
+    { id:'r163', name:'クラムチャウダー', emoji:'🍲', cat:'汁物', time:25, serves:3, tags:['あさり','クリーム','洋風'],
+      ingredients:[{name:'あさり水煮缶',amount:'1缶'},{name:'ベーコン',amount:'50g'},{name:'玉ねぎ',amount:'1/2個'},{name:'じゃがいも',amount:'1個'},{name:'にんじん',amount:'1/3本'},{name:'牛乳',amount:'400ml'},{name:'バター',amount:'15g'},{name:'小麦粉',amount:'大さじ2'},{name:'コンソメ',amount:'1個'},{name:'塩こしょう',amount:'少々'}],
+      steps:['野菜を1cm角、ベーコンは短冊。','バターで炒め、小麦粉を加え1分炒める。','牛乳・水・コンソメ・あさり缶汁ごとを加え15分煮る。','塩こしょうで味を整える。'] },
+
+    { id:'r164', name:'ポタージュ（じゃがいも）', emoji:'🥔', cat:'汁物', time:25, serves:3, tags:['じゃがいも','洋風','子ども','滑らか'],
+      ingredients:[{name:'じゃがいも',amount:'2個'},{name:'玉ねぎ',amount:'1/2個'},{name:'バター',amount:'15g'},{name:'牛乳',amount:'400ml'},{name:'コンソメ',amount:'1個'},{name:'塩こしょう',amount:'少々'},{name:'パセリ',amount:'少々'}],
+      steps:['じゃがいもと玉ねぎを薄切り。','バターで炒め、水300ml・コンソメで柔らかくなるまで煮る。','ミキサーで滑らかにし、牛乳を加え温める。','塩こしょうで味を整え、パセリを散らす。'] },
+
+    { id:'r165', name:'かぼちゃのポタージュ', emoji:'🎃', cat:'汁物', time:25, serves:3, tags:['かぼちゃ','洋風','子ども','秋'],
+      ingredients:[{name:'かぼちゃ',amount:'300g'},{name:'玉ねぎ',amount:'1/2個'},{name:'バター',amount:'15g'},{name:'牛乳',amount:'400ml'},{name:'コンソメ',amount:'1個'},{name:'塩こしょう',amount:'少々'}],
+      steps:['かぼちゃの種を取り、薄切り。玉ねぎも薄切り。','バターで玉ねぎを炒め、かぼちゃと水300ml・コンソメで煮る。','ミキサーで滑らかにし、牛乳を加え温める。','塩こしょうで味を整える。'] },
+
+    // ═════════════════════════════════════════════════════════════════
+    // +100 more recipes (r166–r265) — さらに拡充
+    // ═════════════════════════════════════════════════════════════════
+
+    // ─── 主食 (r166-r180) ──────────────────────────────────────
+    { id:'r166', name:'親子うどん', emoji:'🍜', cat:'主食', time:15, serves:2, tags:['うどん','鶏肉','卵','和食'],
+      ingredients:[{name:'うどん',amount:'2玉'},{name:'鶏もも',amount:'100g'},{name:'玉ねぎ',amount:'1/4個'},{name:'卵',amount:'3個'},{name:'めんつゆ',amount:'400ml'}],
+      steps:['鶏と玉ねぎを切る。','めんつゆを煮立て、鶏と玉ねぎを煮る。','うどんを茹でて丼へ。','卵を溶き回し入れ、半熟で丼にのせる。'] },
+    { id:'r167', name:'きのこご飯', emoji:'🍄', cat:'主食', time:60, serves:4, tags:['ご飯','きのこ','秋','和食'],
+      ingredients:[{name:'米',amount:'2合'},{name:'しめじ',amount:'1パック'},{name:'しいたけ',amount:'3個'},{name:'えのき',amount:'1/2袋'},{name:'しょうゆ',amount:'大さじ2'},{name:'みりん',amount:'大さじ1'},{name:'だし',amount:'米の規定量'}],
+      steps:['米を研いで浸水30分。','きのこをほぐし食べやすく。','炊飯器に米・だし・調味料・きのこで炊く。'] },
+    { id:'r168', name:'カレー炒飯', emoji:'🍛', cat:'主食', time:15, serves:2, tags:['ご飯','カレー','時短','子ども'],
+      ingredients:[{name:'ご飯',amount:'2杯'},{name:'卵',amount:'2個'},{name:'カレー粉',amount:'大さじ1'},{name:'ウインナー',amount:'4本'},{name:'玉ねぎ',amount:'1/4個'},{name:'塩こしょう',amount:'少々'},{name:'油',amount:'適量'}],
+      steps:['具材を小さく切る。','卵を炒め、ご飯と具材を加える。','カレー粉・塩こしょうで味付け。'] },
+    { id:'r169', name:'シーフードカレー', emoji:'🦐', cat:'主食', time:30, serves:3, tags:['カレー','海鮮','洋風'],
+      ingredients:[{name:'冷凍シーフードミックス',amount:'300g'},{name:'玉ねぎ',amount:'1個'},{name:'カレールー',amount:'1/2箱'},{name:'水',amount:'600ml'},{name:'生クリーム',amount:'大さじ3'},{name:'ご飯',amount:'3杯'}],
+      steps:['玉ねぎを炒め、シーフードを加える。','水で煮て、ルーを溶かす。','生クリームを加えて仕上げ。','ご飯と一緒に器へ。'] },
+    { id:'r170', name:'ハヤシライス', emoji:'🥩', cat:'主食', time:40, serves:3, tags:['牛肉','洋風','定番','子ども'],
+      ingredients:[{name:'牛肉薄切り',amount:'300g'},{name:'玉ねぎ',amount:'1個'},{name:'マッシュルーム',amount:'1パック'},{name:'ハヤシルー',amount:'1/2箱'},{name:'赤ワイン',amount:'大さじ2'},{name:'水',amount:'500ml'},{name:'ご飯',amount:'3杯'}],
+      steps:['牛肉と玉ねぎを炒め、赤ワインを加える。','水と具材で15分煮る。','ルーを溶かし、5分煮込む。'] },
+    { id:'r171', name:'ドリア', emoji:'🧀', cat:'主食', time:30, serves:2, tags:['ご飯','チーズ','オーブン','子ども'],
+      ingredients:[{name:'ご飯',amount:'2杯'},{name:'ホワイトソース（市販）',amount:'200g'},{name:'玉ねぎ',amount:'1/4個'},{name:'鶏もも',amount:'100g'},{name:'ピザ用チーズ',amount:'適量'},{name:'バター',amount:'10g'},{name:'塩こしょう',amount:'少々'}],
+      steps:['鶏と玉ねぎを炒める。','耐熱皿にご飯、具、ホワイトソース、チーズを重ねる。','230℃オーブンで15分焼く。'] },
+    { id:'r172', name:'グラタン', emoji:'🫕', cat:'主食', time:30, serves:3, tags:['マカロニ','チーズ','オーブン','子ども'],
+      ingredients:[{name:'マカロニ',amount:'150g'},{name:'鶏もも',amount:'200g'},{name:'玉ねぎ',amount:'1/2個'},{name:'ホワイトソース（市販）',amount:'300g'},{name:'ピザ用チーズ',amount:'適量'},{name:'バター',amount:'10g'}],
+      steps:['マカロニを茹でる。','鶏と玉ねぎを炒める。','耐熱皿に具・ソース・チーズ。','230℃で15分焼く。'] },
+    { id:'r173', name:'ガーリックライス', emoji:'🧄', cat:'主食', time:15, serves:2, tags:['ご飯','にんにく','バター','時短'],
+      ingredients:[{name:'ご飯',amount:'2杯'},{name:'にんにく',amount:'2かけ'},{name:'バター',amount:'15g'},{name:'しょうゆ',amount:'大さじ1'},{name:'塩こしょう',amount:'少々'},{name:'パセリ',amount:'少々'}],
+      steps:['にんにくをみじん切り、バターで香り出し。','ご飯を加え強火で炒める。','しょうゆと塩こしょうで味付け。','パセリを散らす。'] },
+    { id:'r174', name:'海苔巻き', emoji:'🍣', cat:'主食', time:20, serves:2, tags:['寿司','お弁当','行事食'],
+      ingredients:[{name:'酢飯',amount:'茶碗3杯'},{name:'焼き海苔',amount:'4枚'},{name:'きゅうり',amount:'1本'},{name:'卵焼き',amount:'2本'},{name:'かに風味かまぼこ',amount:'4本'}],
+      steps:['巻きすに海苔、酢飯を広げる。','具を並べて巻く。','食べやすく切る。'] },
+    { id:'r175', name:'いなり寿司', emoji:'🦊', cat:'主食', time:30, serves:3, tags:['寿司','お弁当','子ども'],
+      ingredients:[{name:'酢飯',amount:'茶碗3杯'},{name:'いなり揚げ（市販）',amount:'8枚'},{name:'白ごま',amount:'少々'}],
+      steps:['酢飯にごまを混ぜる。','いなり揚げに酢飯を詰める。'] },
+    { id:'r176', name:'手巻き寿司', emoji:'🍣', cat:'主食', time:15, serves:3, tags:['寿司','家族で','パーティ','生'],
+      ingredients:[{name:'酢飯',amount:'茶碗3杯'},{name:'刺身各種',amount:'適量'},{name:'きゅうり',amount:'1本'},{name:'卵焼き',amount:'適量'},{name:'手巻き海苔',amount:'適量'}],
+      steps:['具材を用意。','海苔に酢飯と具を乗せて巻きながら食べる。'] },
+    { id:'r177', name:'具だくさんお茶漬け', emoji:'🍵', cat:'主食', time:10, serves:2, tags:['ご飯','鮭','時短','夜食'],
+      ingredients:[{name:'ご飯',amount:'2杯'},{name:'鮭',amount:'1切れ'},{name:'刻み海苔',amount:'適量'},{name:'梅干し',amount:'1個'},{name:'三つ葉',amount:'少々'},{name:'だし',amount:'400ml'},{name:'しょうゆ',amount:'小さじ2'}],
+      steps:['鮭を焼いてほぐす。','ご飯に具材をのせ、温めただしを注ぐ。'] },
+    { id:'r178', name:'ガパオライス', emoji:'🌿', cat:'主食', time:20, serves:2, tags:['ご飯','タイ料理','鶏肉'],
+      ingredients:[{name:'ご飯',amount:'2杯'},{name:'鶏ひき肉',amount:'200g'},{name:'パプリカ',amount:'1個'},{name:'バジル',amount:'一束'},{name:'にんにく',amount:'1かけ'},{name:'目玉焼き',amount:'2個'},{name:'オイスターソース',amount:'大さじ2'},{name:'ナンプラー',amount:'大さじ1'},{name:'砂糖',amount:'小さじ1'}],
+      steps:['鶏ひき肉を炒め、野菜とにんにくを加える。','調味料で味付けし、バジルを混ぜる。','ご飯にのせ目玉焼きを添える。'] },
+    { id:'r179', name:'ラザニア', emoji:'🧀', cat:'主食', time:60, serves:4, tags:['オーブン','チーズ','洋風','週末'],
+      ingredients:[{name:'ラザニアシート',amount:'9枚'},{name:'ミートソース',amount:'500g'},{name:'ホワイトソース',amount:'400g'},{name:'ピザ用チーズ',amount:'150g'}],
+      steps:['耐熱皿にミート→シート→ホワイト→チーズの順で3層。','180℃オーブンで40分焼く。'] },
+    { id:'r180', name:'ボンゴレビアンコ', emoji:'🦪', cat:'主食', time:20, serves:2, tags:['パスタ','あさり','洋風'],
+      ingredients:[{name:'スパゲッティ',amount:'200g'},{name:'あさり',amount:'300g'},{name:'にんにく',amount:'2かけ'},{name:'白ワイン',amount:'100ml'},{name:'オリーブオイル',amount:'大さじ3'},{name:'パセリ',amount:'少々'},{name:'赤唐辛子',amount:'少々'}],
+      steps:['あさりを砂抜き。','にんにくとオイルで香り出し、唐辛子も加える。','あさりと白ワインを入れ蓋、開いたら茹でた麺を絡める。','パセリを散らす。'] },
+
+    // ─── 主菜 (r181-r210) ──────────────────────────────────────
+    { id:'r181', name:'ホイコーロー', emoji:'🥘', cat:'主菜', time:15, serves:2, tags:['豚肉','キャベツ','中華','ピリ辛'],
+      ingredients:[{name:'豚バラ',amount:'200g'},{name:'キャベツ',amount:'1/4個'},{name:'ピーマン',amount:'2個'},{name:'長ねぎ',amount:'1/2本'},{name:'甜麺醤',amount:'大さじ1'},{name:'豆板醤',amount:'小さじ1'},{name:'しょうゆ',amount:'大さじ1'},{name:'砂糖',amount:'小さじ1'}],
+      steps:['豚とキャベツを切る。','豚を炒め、野菜を加える。','合わせ調味料で味付け。'] },
+    { id:'r182', name:'青椒肉絲', emoji:'🌶', cat:'主菜', time:15, serves:2, tags:['牛肉','ピーマン','中華'],
+      ingredients:[{name:'牛肉細切り',amount:'200g'},{name:'ピーマン',amount:'4個'},{name:'たけのこ水煮',amount:'80g'},{name:'オイスターソース',amount:'大さじ1'},{name:'しょうゆ',amount:'大さじ1'},{name:'酒',amount:'大さじ1'},{name:'片栗粉',amount:'小さじ1'}],
+      steps:['牛肉に片栗粉をまぶす。','野菜を細切り。','牛肉→野菜の順で炒め、調味料で味付け。'] },
+    { id:'r183', name:'エビチリ', emoji:'🌶', cat:'主菜', time:20, serves:2, tags:['海老','中華','ピリ辛'],
+      ingredients:[{name:'海老',amount:'200g'},{name:'長ねぎ',amount:'1本'},{name:'にんにく・しょうが',amount:'各少々'},{name:'豆板醤',amount:'小さじ1'},{name:'ケチャップ',amount:'大さじ3'},{name:'砂糖',amount:'大さじ1'},{name:'鶏がらスープ',amount:'100ml'},{name:'片栗粉',amount:'小さじ2'}],
+      steps:['海老の背わたを取り片栗粉をまぶす。','しょうが・にんにく・豆板醤を炒め、海老を加える。','調味料とスープで煮絡める。'] },
+    { id:'r184', name:'エビマヨ', emoji:'🦐', cat:'主菜', time:15, serves:2, tags:['海老','マヨ','中華','子ども'],
+      ingredients:[{name:'海老',amount:'200g'},{name:'片栗粉',amount:'大さじ3'},{name:'マヨネーズ',amount:'大さじ3'},{name:'ケチャップ',amount:'大さじ1'},{name:'砂糖',amount:'小さじ1'},{name:'レモン汁',amount:'小さじ1'},{name:'揚げ油',amount:'適量'}],
+      steps:['海老に片栗粉をまぶし素揚げ。','マヨ・ケチャップ・砂糖・レモンを混ぜ、海老を和える。'] },
+    { id:'r185', name:'魚の南蛮漬け', emoji:'🐟', cat:'主菜', time:25, serves:3, tags:['魚','南蛮','作り置き'],
+      ingredients:[{name:'あじ（小）',amount:'8尾'},{name:'片栗粉',amount:'大さじ3'},{name:'玉ねぎ',amount:'1/2個'},{name:'にんじん',amount:'1/3本'},{name:'酢',amount:'大さじ4'},{name:'しょうゆ',amount:'大さじ3'},{name:'砂糖',amount:'大さじ3'},{name:'だし',amount:'100ml'}],
+      steps:['あじに片栗粉をまぶし揚げる。','野菜を細切り、南蛮酢を煮立てる。','揚げた魚と野菜を漬ける。10分以上なじませる。'] },
+    { id:'r186', name:'アジフライ', emoji:'🐟', cat:'主菜', time:20, serves:2, tags:['魚','揚げ物','定食'],
+      ingredients:[{name:'あじ（開き）',amount:'4尾'},{name:'塩こしょう',amount:'少々'},{name:'小麦粉',amount:'大さじ3'},{name:'卵',amount:'1個'},{name:'パン粉',amount:'1カップ'},{name:'揚げ油',amount:'適量'},{name:'ソース',amount:'適量'}],
+      steps:['あじに塩こしょうし、衣付け。','170℃で4分揚げる。','ソースで。'] },
+    { id:'r187', name:'きすの天ぷら', emoji:'🍤', cat:'主菜', time:20, serves:2, tags:['魚','天ぷら','上品'],
+      ingredients:[{name:'きす（開き）',amount:'6尾'},{name:'天ぷら衣',amount:'適量'},{name:'揚げ油',amount:'適量'},{name:'塩',amount:'少々'}],
+      steps:['きすに衣をつける。','170℃で2分揚げる。','塩で。'] },
+    { id:'r188', name:'ホッケの塩焼き', emoji:'🐟', cat:'主菜', time:15, serves:2, tags:['魚','焼き物','居酒屋'],
+      ingredients:[{name:'ホッケ（開き）',amount:'2尾'},{name:'塩',amount:'少々'},{name:'大根おろし',amount:'適量'},{name:'レモン',amount:'1/4個'}],
+      steps:['ホッケに塩をふる。','グリルで両面焼く（10分）。','大根おろしとレモンを添える。'] },
+    { id:'r189', name:'カレイの煮付け', emoji:'🐟', cat:'主菜', time:20, serves:2, tags:['魚','煮物','和食'],
+      ingredients:[{name:'カレイ',amount:'2切れ'},{name:'しょうゆ',amount:'大さじ3'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'酒',amount:'大さじ2'},{name:'しょうが',amount:'1かけ'},{name:'水',amount:'200ml'}],
+      steps:['カレイに熱湯をかけて霜降り。','鍋で水・調味料・しょうがを煮立て、カレイを加え10分煮る。'] },
+    { id:'r190', name:'タラの西京焼き', emoji:'🐟', cat:'主菜', time:15, serves:2, tags:['魚','味噌','上品'],
+      ingredients:[{name:'タラ',amount:'2切れ'},{name:'西京味噌',amount:'大さじ3'},{name:'みりん',amount:'大さじ1'},{name:'酒',amount:'大さじ1'}],
+      steps:['味噌床を作り、タラを一晩漬ける。','味噌を軽く拭き、グリルで弱火で焼く。'] },
+    { id:'r191', name:'鮭の西京焼き', emoji:'🐟', cat:'主菜', time:15, serves:2, tags:['魚','味噌','和食'],
+      ingredients:[{name:'鮭',amount:'2切れ'},{name:'西京味噌',amount:'大さじ3'},{name:'みりん',amount:'大さじ1'},{name:'酒',amount:'大さじ1'}],
+      steps:['味噌床を作り、鮭を一晩漬ける。','味噌を拭きグリルで弱火で焼く。'] },
+    { id:'r192', name:'キャベツとひき肉の重ね煮', emoji:'🥬', cat:'主菜', time:30, serves:3, tags:['キャベツ','挽き肉','煮込み'],
+      ingredients:[{name:'キャベツ',amount:'1/4個'},{name:'合いびき肉',amount:'250g'},{name:'玉ねぎ',amount:'1/4個'},{name:'塩こしょう',amount:'少々'},{name:'コンソメ',amount:'1個'},{name:'水',amount:'300ml'},{name:'ケチャップ',amount:'大さじ2'}],
+      steps:['キャベツを大きめに切る。','挽き肉だねを作る。','鍋にキャベツ→挽き肉→キャベツと重ねる。','水・コンソメ・ケチャップで20分煮る。'] },
+    { id:'r193', name:'チーズインハンバーグ', emoji:'🧀', cat:'主菜', time:30, serves:2, tags:['挽き肉','チーズ','洋風','子ども'],
+      ingredients:[{name:'合いびき肉',amount:'300g'},{name:'玉ねぎ',amount:'1/2個'},{name:'パン粉',amount:'大さじ3'},{name:'牛乳',amount:'大さじ2'},{name:'卵',amount:'1個'},{name:'とろけるチーズ',amount:'2枚'},{name:'塩こしょう',amount:'少々'},{name:'デミグラス（市販）',amount:'100g'}],
+      steps:['肉だねを作り、チーズを包んで成形。','両面焼き色を付け、蓋をして8分蒸し焼き。','デミグラスをかける。'] },
+    { id:'r194', name:'豚ヒレのベーコン巻き', emoji:'🥓', cat:'主菜', time:20, serves:2, tags:['豚肉','ベーコン','洋風'],
+      ingredients:[{name:'豚ヒレ',amount:'2枚'},{name:'ベーコン',amount:'4枚'},{name:'塩こしょう',amount:'少々'},{name:'しょうゆ',amount:'大さじ1'},{name:'酒',amount:'大さじ1'},{name:'はちみつ',amount:'大さじ1'}],
+      steps:['豚ヒレに塩こしょう、ベーコンを巻く。','フライパンで全面焼く。','調味料を加え絡める。'] },
+    { id:'r195', name:'鶏の塩焼き', emoji:'🍗', cat:'主菜', time:15, serves:2, tags:['鶏肉','塩','シンプル'],
+      ingredients:[{name:'鶏もも',amount:'1枚'},{name:'塩',amount:'小さじ1/4'},{name:'こしょう',amount:'少々'},{name:'レモン',amount:'1/4個'}],
+      steps:['鶏肉に塩こしょう。','フライパンで皮目から弱火7分、裏返して3分。','レモンを添える。'] },
+    { id:'r196', name:'鶏のから揚げネギダレ', emoji:'🍗', cat:'主菜', time:25, serves:2, tags:['鶏肉','ねぎ','ピリ辛'],
+      ingredients:[{name:'鶏もも',amount:'300g'},{name:'片栗粉',amount:'大さじ3'},{name:'塩こしょう',amount:'少々'},{name:'長ねぎ',amount:'1/2本'},{name:'しょうゆ',amount:'大さじ2'},{name:'酢',amount:'大さじ1'},{name:'ごま油',amount:'大さじ1'},{name:'砂糖',amount:'小さじ1'}],
+      steps:['鶏肉に下味し揚げる。','ねぎみじん切り・調味料でタレを作る。','揚げた鶏にかける。'] },
+    { id:'r197', name:'鶏と卵の照り焼き', emoji:'🍳', cat:'主菜', time:15, serves:2, tags:['鶏肉','卵','甘辛','子ども'],
+      ingredients:[{name:'鶏もも',amount:'250g'},{name:'卵',amount:'2個'},{name:'しょうゆ',amount:'大さじ2'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'酒',amount:'大さじ1'}],
+      steps:['鶏肉を一口大にして焼く。','合わせ調味料を加え煮絡める。','別で半熟卵を添える。'] },
+    { id:'r198', name:'豚とれんこんの甘辛炒め', emoji:'🪷', cat:'主菜', time:20, serves:2, tags:['豚肉','れんこん','甘辛'],
+      ingredients:[{name:'豚こま',amount:'200g'},{name:'れんこん',amount:'200g'},{name:'しょうゆ',amount:'大さじ2'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'ごま油',amount:'大さじ1'}],
+      steps:['れんこんを薄切り、水にさらす。','豚を炒め、れんこんを加える。','調味料を加え煮絡める。'] },
+    { id:'r199', name:'豚肉と野菜のバター醤油炒め', emoji:'🧈', cat:'主菜', time:15, serves:2, tags:['豚肉','バター','洋風','時短'],
+      ingredients:[{name:'豚ロース',amount:'200g'},{name:'じゃがいも',amount:'1個'},{name:'いんげん',amount:'10本'},{name:'バター',amount:'15g'},{name:'しょうゆ',amount:'大さじ1'},{name:'塩こしょう',amount:'少々'}],
+      steps:['じゃがいもをレンジで加熱し一口大。','豚を炒め、野菜を加える。','バターとしょうゆで味付け。'] },
+    { id:'r200', name:'サムギョプサル', emoji:'🥬', cat:'主菜', time:15, serves:2, tags:['豚肉','韓国','家族で'],
+      ingredients:[{name:'豚バラブロック',amount:'300g'},{name:'サンチュ',amount:'1束'},{name:'キムチ',amount:'100g'},{name:'にんにく',amount:'2かけ'},{name:'サムジャン',amount:'大さじ2'}],
+      steps:['豚バラを厚切り。','フライパンで両面カリッと焼く。','サンチュに豚・キムチ・味噌を包んで食べる。'] },
+    { id:'r201', name:'タンドリーチキン', emoji:'🍗', cat:'主菜', time:40, serves:2, tags:['鶏肉','カレー','オーブン'],
+      ingredients:[{name:'鶏もも',amount:'300g'},{name:'ヨーグルト',amount:'100g'},{name:'カレー粉',amount:'大さじ1'},{name:'ケチャップ',amount:'大さじ1'},{name:'にんにく・しょうが',amount:'各少々'},{name:'塩こしょう',amount:'少々'}],
+      steps:['鶏肉を一口大。','ヨーグルト・スパイスに30分漬ける。','オーブン200℃で20分焼く。'] },
+    { id:'r202', name:'ロコモコ', emoji:'🍍', cat:'主菜', time:25, serves:2, tags:['挽き肉','卵','洋風','ハワイ'],
+      ingredients:[{name:'合いびき肉',amount:'200g'},{name:'玉ねぎ',amount:'1/4個'},{name:'卵',amount:'2個'},{name:'ご飯',amount:'2杯'},{name:'デミグラス（市販）',amount:'100g'},{name:'塩こしょう',amount:'少々'}],
+      steps:['ハンバーグを作り焼く。','目玉焼きを作る。','ご飯→ハンバーグ→目玉焼きの順で盛り、デミをかける。'] },
+    { id:'r203', name:'チーズオムレツ', emoji:'🧀', cat:'主菜', time:10, serves:2, tags:['卵','チーズ','朝食','洋風'],
+      ingredients:[{name:'卵',amount:'4個'},{name:'牛乳',amount:'大さじ2'},{name:'とろけるチーズ',amount:'40g'},{name:'バター',amount:'15g'},{name:'塩こしょう',amount:'少々'},{name:'ケチャップ',amount:'適量'}],
+      steps:['卵に牛乳と塩こしょうを混ぜる。','バターを溶かし卵液を流す。','半熟でチーズを乗せて半分に折る。'] },
+    { id:'r204', name:'鶏むね肉のチキンカツ', emoji:'🍗', cat:'主菜', time:25, serves:2, tags:['鶏肉','揚げ物','ヘルシー'],
+      ingredients:[{name:'鶏むね肉',amount:'1枚'},{name:'塩こしょう',amount:'少々'},{name:'小麦粉',amount:'大さじ3'},{name:'卵',amount:'1個'},{name:'パン粉',amount:'1カップ'},{name:'揚げ油',amount:'適量'},{name:'ソース',amount:'適量'}],
+      steps:['むね肉をそぎ切り、塩こしょう。','衣付けし170℃で5分揚げる。','ソースで。'] },
+    { id:'r205', name:'豆腐のステーキ', emoji:'🎋', cat:'主菜', time:15, serves:2, tags:['豆腐','ヘルシー','和風'],
+      ingredients:[{name:'木綿豆腐',amount:'1丁'},{name:'小麦粉',amount:'大さじ2'},{name:'バター',amount:'15g'},{name:'しょうゆ',amount:'大さじ1'},{name:'みりん',amount:'大さじ1'},{name:'大根おろし',amount:'適量'}],
+      steps:['豆腐を水切り、2等分。','小麦粉をまぶしバターで両面焼く。','しょうゆみりんで味付け、大根おろしを添える。'] },
+    { id:'r206', name:'厚揚げの肉味噌', emoji:'🟫', cat:'主菜', time:15, serves:2, tags:['厚揚げ','挽き肉','味噌'],
+      ingredients:[{name:'厚揚げ',amount:'2枚'},{name:'豚ひき肉',amount:'150g'},{name:'味噌',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'酒',amount:'大さじ1'},{name:'しょうゆ',amount:'小さじ1'},{name:'長ねぎ',amount:'1/4本'}],
+      steps:['厚揚げをフライパンで焼く。','ひき肉と調味料で肉味噌を作る。','厚揚げに肉味噌をかけ、ねぎを散らす。'] },
+    { id:'r207', name:'ちくわの磯部揚げ', emoji:'🎋', cat:'主菜', time:10, serves:2, tags:['ちくわ','揚げ物','時短','お弁当'],
+      ingredients:[{name:'ちくわ',amount:'4本'},{name:'小麦粉',amount:'大さじ4'},{name:'青のり',amount:'小さじ2'},{name:'水',amount:'大さじ4'},{name:'揚げ油',amount:'適量'}],
+      steps:['ちくわを斜め切り。','衣（小麦粉・青のり・水）を作りつける。','170℃で1分揚げる。'] },
+    { id:'r208', name:'鰹のたたき', emoji:'🐟', cat:'主菜', time:10, serves:2, tags:['魚','生','薬味'],
+      ingredients:[{name:'鰹（刺身用）',amount:'1サク'},{name:'塩',amount:'少々'},{name:'にんにく',amount:'1かけ'},{name:'しょうが',amount:'少々'},{name:'みょうが',amount:'少々'},{name:'ポン酢',amount:'適量'}],
+      steps:['鰹の表面を強火で炙る（または市販のたたきを使用）。','薄切りにし、薬味とポン酢で。'] },
+    { id:'r209', name:'焼き鮭のマリネ', emoji:'🐟', cat:'主菜', time:15, serves:2, tags:['魚','洋風','作り置き'],
+      ingredients:[{name:'鮭',amount:'2切れ'},{name:'玉ねぎ',amount:'1/4個'},{name:'にんじん',amount:'1/3本'},{name:'オリーブオイル',amount:'大さじ3'},{name:'酢',amount:'大さじ2'},{name:'塩こしょう',amount:'少々'}],
+      steps:['鮭を焼いてほぐす。','玉ねぎとにんじんを千切り。','オイル・酢で和え、30分なじませる。'] },
+    { id:'r210', name:'カジキの照り焼き', emoji:'🐟', cat:'主菜', time:15, serves:2, tags:['魚','照り焼き','和食'],
+      ingredients:[{name:'カジキ',amount:'2切れ'},{name:'小麦粉',amount:'大さじ1'},{name:'しょうゆ',amount:'大さじ2'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'酒',amount:'大さじ1'}],
+      steps:['カジキに小麦粉をまぶす。','フライパンで両面を焼く。','調味料を加え絡める。'] },
+
+    // ─── 丼もの (r211-r215) ──────────────────────────────────────
+    { id:'r211', name:'他人丼', emoji:'🥩', cat:'丼もの', time:15, serves:2, tags:['牛肉','卵','丼','時短'],
+      ingredients:[{name:'牛肉薄切り',amount:'150g'},{name:'玉ねぎ',amount:'1/4個'},{name:'卵',amount:'3個'},{name:'めんつゆ',amount:'100ml'},{name:'水',amount:'100ml'},{name:'ご飯',amount:'2杯'},{name:'三つ葉',amount:'少々'}],
+      steps:['めんつゆと水で玉ねぎと牛肉を煮る。','卵を溶き回し入れ半熟で。','ご飯にのせ三つ葉を散らす。'] },
+    { id:'r212', name:'鶏カツ丼', emoji:'🍗', cat:'丼もの', time:25, serves:2, tags:['鶏肉','カツ','丼','子ども'],
+      ingredients:[{name:'鶏むね肉',amount:'1枚'},{name:'卵',amount:'3個'},{name:'玉ねぎ',amount:'1/2個'},{name:'小麦粉・卵・パン粉',amount:'適量'},{name:'だし',amount:'200ml'},{name:'しょうゆ',amount:'大さじ2'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'ご飯',amount:'2杯'}],
+      steps:['むね肉をチキンカツに揚げる。','玉ねぎを煮、カツをのせ卵でとじる。','ご飯にのせる。'] },
+    { id:'r213', name:'サバ竜田丼', emoji:'🐟', cat:'丼もの', time:20, serves:2, tags:['魚','丼','サバ'],
+      ingredients:[{name:'サバ',amount:'2切れ'},{name:'片栗粉',amount:'大さじ3'},{name:'しょうゆ・酒・生姜',amount:'各少々'},{name:'キャベツ千切り',amount:'適量'},{name:'ご飯',amount:'2杯'},{name:'タレ（しょうゆ・みりん・生姜）',amount:'適量'}],
+      steps:['サバを下味付け→片栗粉→揚げる（竜田揚げ）。','ご飯に千切りキャベツ、揚げたサバをのせる。','タレをかける。'] },
+    { id:'r214', name:'きつね丼', emoji:'🦊', cat:'丼もの', time:15, serves:2, tags:['油揚げ','卵','丼','優しい'],
+      ingredients:[{name:'油揚げ',amount:'3枚'},{name:'玉ねぎ',amount:'1/2個'},{name:'卵',amount:'2個'},{name:'だし',amount:'200ml'},{name:'しょうゆ',amount:'大さじ2'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'ご飯',amount:'2杯'}],
+      steps:['油揚げと玉ねぎを煮る。','卵でとじる。','ご飯にのせる。'] },
+    { id:'r215', name:'鰻丼', emoji:'🐟', cat:'丼もの', time:10, serves:2, tags:['鰻','土用','行事食'],
+      ingredients:[{name:'市販うなぎ蒲焼',amount:'1尾'},{name:'ご飯',amount:'2杯'},{name:'蒲焼のタレ',amount:'適量'},{name:'山椒',amount:'少々'}],
+      steps:['うなぎを温める。','ご飯にのせ、タレと山椒を振る。'] },
+
+    // ─── 一品 (r216-r225) ──────────────────────────────────────
+    { id:'r216', name:'豚キムチ鍋', emoji:'🍲', cat:'一品', time:25, serves:3, tags:['鍋','豚肉','キムチ','冬'],
+      ingredients:[{name:'豚バラ',amount:'200g'},{name:'キムチ',amount:'150g'},{name:'白菜',amount:'1/4個'},{name:'豆腐',amount:'1/2丁'},{name:'長ねぎ',amount:'1本'},{name:'えのき',amount:'1/2袋'},{name:'にら',amount:'1/2束'},{name:'鶏がらスープ',amount:'800ml'},{name:'味噌',amount:'大さじ2'}],
+      steps:['具材を切る。','鍋に豚・キムチ・野菜・スープを入れ煮る。','味噌で味付け。'] },
+    { id:'r217', name:'鶏だんご鍋', emoji:'🍲', cat:'一品', time:30, serves:3, tags:['鍋','鶏肉','冬','家族で'],
+      ingredients:[{name:'鶏ひき肉',amount:'300g'},{name:'ねぎ',amount:'1/2本'},{name:'しょうが',amount:'少々'},{name:'片栗粉',amount:'大さじ1'},{name:'白菜',amount:'1/4個'},{name:'春菊',amount:'1/2束'},{name:'えのき',amount:'1/2袋'},{name:'豆腐',amount:'1/2丁'},{name:'だし',amount:'1L'},{name:'しょうゆ',amount:'大さじ3'}],
+      steps:['鶏だんごを作る。','野菜を切る。','鍋でだんごを煮、野菜を加えて煮る。'] },
+    { id:'r218', name:'キムチチゲ', emoji:'🍲', cat:'一品', time:25, serves:2, tags:['韓国','豚肉','キムチ','ピリ辛'],
+      ingredients:[{name:'豚バラ',amount:'150g'},{name:'キムチ',amount:'150g'},{name:'豆腐',amount:'1/2丁'},{name:'えのき',amount:'1/2袋'},{name:'にら',amount:'1/2束'},{name:'鶏がらスープ',amount:'600ml'},{name:'コチュジャン',amount:'大さじ1'},{name:'味噌',amount:'大さじ1'},{name:'ごま油',amount:'少々'}],
+      steps:['豚とキムチを炒める。','スープ・コチュジャン・豆腐を加え煮る。','味噌で味付け、にらを散らす。'] },
+    { id:'r219', name:'湯豆腐', emoji:'🎋', cat:'一品', time:10, serves:2, tags:['豆腐','シンプル','冬','ヘルシー'],
+      ingredients:[{name:'木綿豆腐',amount:'1丁'},{name:'昆布',amount:'10cm'},{name:'水',amount:'700ml'},{name:'ポン酢',amount:'適量'},{name:'薬味（ねぎ・かつお節）',amount:'適量'}],
+      steps:['鍋に水と昆布を入れ、豆腐を加え温める。','ポン酢と薬味で。'] },
+    { id:'r220', name:'水炊き', emoji:'🍲', cat:'一品', time:40, serves:3, tags:['鍋','鶏肉','冬','家族で'],
+      ingredients:[{name:'鶏もも',amount:'500g'},{name:'白菜',amount:'1/4個'},{name:'ねぎ',amount:'1本'},{name:'しいたけ',amount:'4個'},{name:'豆腐',amount:'1丁'},{name:'水',amount:'1L'},{name:'昆布',amount:'10cm'},{name:'ポン酢',amount:'適量'}],
+      steps:['鍋に水・昆布・鶏を入れ30分煮る。','野菜を加え煮る。','ポン酢で。'] },
+    { id:'r221', name:'石狩鍋', emoji:'🐟', cat:'一品', time:30, serves:3, tags:['鍋','鮭','北海道','冬'],
+      ingredients:[{name:'鮭',amount:'4切れ'},{name:'白菜',amount:'1/4個'},{name:'大根',amount:'10cm'},{name:'にんじん',amount:'1/2本'},{name:'しいたけ',amount:'4個'},{name:'豆腐',amount:'1/2丁'},{name:'だし',amount:'1L'},{name:'味噌',amount:'大さじ4'},{name:'酒',amount:'大さじ2'}],
+      steps:['野菜を切り、だしで煮る。','鮭と豆腐を加え煮る。','味噌を溶く。'] },
+    { id:'r222', name:'ちゃんこ鍋', emoji:'🍲', cat:'一品', time:40, serves:4, tags:['鍋','相撲','家族で','冬'],
+      ingredients:[{name:'鶏手羽元',amount:'4本'},{name:'鶏つくね',amount:'250g'},{name:'白菜',amount:'1/4個'},{name:'長ねぎ',amount:'1本'},{name:'きのこ各種',amount:'適量'},{name:'豆腐',amount:'1/2丁'},{name:'だし',amount:'1.5L'},{name:'しょうゆ',amount:'大さじ4'},{name:'みりん',amount:'大さじ2'}],
+      steps:['手羽元とつくねをだしで煮る。','野菜・豆腐を加え煮る。','しょうゆとみりんで味を整える。'] },
+    { id:'r223', name:'ポトフ', emoji:'🥘', cat:'一品', time:60, serves:4, tags:['煮込み','洋風','野菜たっぷり','冬'],
+      ingredients:[{name:'ソーセージ',amount:'6本'},{name:'キャベツ',amount:'1/4個'},{name:'にんじん',amount:'2本'},{name:'玉ねぎ',amount:'2個'},{name:'じゃがいも',amount:'3個'},{name:'コンソメ',amount:'2個'},{name:'水',amount:'1L'},{name:'塩こしょう',amount:'少々'}],
+      steps:['野菜を大きめに切る。','水・コンソメ・野菜・ソーセージで40分煮る。','塩こしょうで調える。'] },
+    { id:'r224', name:'ブイヤベース', emoji:'🦐', cat:'一品', time:40, serves:4, tags:['海鮮','フレンチ','煮込み','週末'],
+      ingredients:[{name:'白身魚',amount:'2切れ'},{name:'海老',amount:'8尾'},{name:'あさり',amount:'200g'},{name:'イカ',amount:'1杯'},{name:'玉ねぎ',amount:'1/2個'},{name:'トマト缶',amount:'1缶'},{name:'にんにく',amount:'2かけ'},{name:'サフラン',amount:'少々'},{name:'白ワイン',amount:'100ml'},{name:'水',amount:'400ml'}],
+      steps:['海鮮を下処理。','玉ねぎを炒め、白ワイン・トマト缶・水・サフランを加える。','海鮮を加え15分煮る。'] },
+    { id:'r225', name:'石焼きビビンバ', emoji:'🥘', cat:'一品', time:25, serves:2, tags:['ご飯','韓国','家族で'],
+      ingredients:[{name:'ご飯',amount:'2杯'},{name:'牛こま肉',amount:'150g'},{name:'にんじん',amount:'1/3本'},{name:'ほうれん草',amount:'1/2束'},{name:'もやし',amount:'1/2袋'},{name:'卵',amount:'2個'},{name:'ゴマ油',amount:'大さじ2'},{name:'コチュジャン',amount:'大さじ2'},{name:'しょうゆ',amount:'大さじ1'}],
+      steps:['ナムル3種を作る。','牛肉を炒める。','石鍋（耐熱皿）にごま油を塗りご飯を入れる。','具材を並べ、卵黄をのせる。','混ぜて食べる。'] },
+
+    // ─── 副菜 (r226-r255) ──────────────────────────────────────
+    { id:'r226', name:'かぼちゃのサラダ', emoji:'🎃', cat:'副菜', time:15, serves:3, tags:['かぼちゃ','マヨ','作り置き'],
+      ingredients:[{name:'かぼちゃ',amount:'1/4個'},{name:'玉ねぎ',amount:'1/4個'},{name:'レーズン',amount:'大さじ2'},{name:'マヨネーズ',amount:'大さじ2'},{name:'塩こしょう',amount:'少々'}],
+      steps:['かぼちゃをレンジ加熱し粗く潰す。','玉ねぎみじん切りを水にさらす。','全て混ぜる。'] },
+    { id:'r227', name:'きのこのマリネ', emoji:'🍄', cat:'副菜', time:15, serves:3, tags:['きのこ','マリネ','洋風','作り置き'],
+      ingredients:[{name:'しめじ',amount:'1パック'},{name:'エリンギ',amount:'1パック'},{name:'しいたけ',amount:'3個'},{name:'オリーブオイル',amount:'大さじ3'},{name:'白ワインビネガー',amount:'大さじ2'},{name:'塩こしょう',amount:'少々'},{name:'パセリ',amount:'少々'}],
+      steps:['きのこを焼く。','調味料と和える。','冷蔵庫で30分なじませる。'] },
+    { id:'r228', name:'ツナサラダ', emoji:'🥗', cat:'副菜', time:10, serves:2, tags:['ツナ','時短','洋風'],
+      ingredients:[{name:'ツナ缶',amount:'1缶'},{name:'レタス',amount:'3枚'},{name:'きゅうり',amount:'1/2本'},{name:'トマト',amount:'1個'},{name:'マヨネーズ',amount:'大さじ2'},{name:'塩こしょう',amount:'少々'}],
+      steps:['野菜を切る。','ツナと合わせマヨで和える。'] },
+    { id:'r229', name:'ごぼうサラダ', emoji:'🥗', cat:'副菜', time:15, serves:3, tags:['ごぼう','マヨ','和風','作り置き'],
+      ingredients:[{name:'ごぼう',amount:'1本'},{name:'にんじん',amount:'1/3本'},{name:'マヨネーズ',amount:'大さじ3'},{name:'しょうゆ',amount:'小さじ1'},{name:'すりごま',amount:'大さじ1'}],
+      steps:['ごぼうとにんじんを細切り、下茹で。','マヨ・しょうゆ・ごまで和える。'] },
+    { id:'r230', name:'大根サラダ', emoji:'🥗', cat:'副菜', time:10, serves:2, tags:['大根','和風','時短'],
+      ingredients:[{name:'大根',amount:'5cm'},{name:'ツナ缶',amount:'1/2缶'},{name:'かいわれ',amount:'少々'},{name:'和風ドレッシング',amount:'大さじ3'}],
+      steps:['大根を千切り。','ツナとドレッシングで和え、かいわれを散らす。'] },
+    { id:'r231', name:'生ハムサラダ', emoji:'🥗', cat:'副菜', time:10, serves:2, tags:['生ハム','洋風','おしゃれ'],
+      ingredients:[{name:'生ハム',amount:'6枚'},{name:'レタス',amount:'4枚'},{name:'トマト',amount:'1個'},{name:'オリーブオイル',amount:'大さじ2'},{name:'バルサミコ酢',amount:'大さじ1'},{name:'塩こしょう',amount:'少々'}],
+      steps:['野菜を盛り、生ハムをのせる。','オイルとバルサミコをかける。'] },
+    { id:'r232', name:'アボカドとトマトのサラダ', emoji:'🥑', cat:'副菜', time:10, serves:2, tags:['アボカド','トマト','洋風'],
+      ingredients:[{name:'アボカド',amount:'1個'},{name:'トマト',amount:'1個'},{name:'モッツァレラ',amount:'50g'},{name:'オリーブオイル',amount:'大さじ2'},{name:'レモン汁',amount:'小さじ1'},{name:'塩こしょう',amount:'少々'}],
+      steps:['アボカド・トマト・モッツァレラを角切り。','調味料で和える。'] },
+    { id:'r233', name:'サーモンとアボカド', emoji:'🥑', cat:'副菜', time:10, serves:2, tags:['サーモン','アボカド','生','おしゃれ'],
+      ingredients:[{name:'サーモン刺身',amount:'100g'},{name:'アボカド',amount:'1個'},{name:'しょうゆ',amount:'大さじ1'},{name:'わさび',amount:'少々'},{name:'オリーブオイル',amount:'小さじ1'}],
+      steps:['サーモンとアボカドを角切り。','調味料で和える。'] },
+    { id:'r234', name:'ちくわときゅうりの和え物', emoji:'🎋', cat:'副菜', time:10, serves:2, tags:['ちくわ','きゅうり','時短'],
+      ingredients:[{name:'ちくわ',amount:'3本'},{name:'きゅうり',amount:'1本'},{name:'白ごま',amount:'少々'},{name:'しょうゆ',amount:'小さじ2'},{name:'ごま油',amount:'小さじ1'}],
+      steps:['ちくわときゅうりを千切り。','しょうゆとごま油で和える。','ごまを散らす。'] },
+    { id:'r235', name:'枝豆のペペロンチーノ', emoji:'🫛', cat:'副菜', time:10, serves:2, tags:['枝豆','にんにく','洋風','おつまみ'],
+      ingredients:[{name:'枝豆（茹で済）',amount:'200g'},{name:'にんにく',amount:'1かけ'},{name:'オリーブオイル',amount:'大さじ2'},{name:'赤唐辛子',amount:'1本'},{name:'塩',amount:'少々'}],
+      steps:['オイルでにんにくと唐辛子を炒める。','枝豆を加え軽く炒め、塩で味付け。'] },
+    { id:'r236', name:'なすの揚げ浸し', emoji:'🍆', cat:'副菜', time:20, serves:3, tags:['なす','和食','作り置き'],
+      ingredients:[{name:'なす',amount:'3本'},{name:'だし',amount:'200ml'},{name:'しょうゆ',amount:'大さじ2'},{name:'みりん',amount:'大さじ1'},{name:'揚げ油',amount:'適量'},{name:'しょうが',amount:'少々'}],
+      steps:['なすを乱切り、素揚げ。','漬け汁を作り、なすを浸す。','10分以上なじませる。'] },
+    { id:'r237', name:'ピーマンとちりめんじゃこ', emoji:'🫑', cat:'副菜', time:10, serves:2, tags:['ピーマン','じゃこ','和食','作り置き'],
+      ingredients:[{name:'ピーマン',amount:'4個'},{name:'ちりめんじゃこ',amount:'大さじ3'},{name:'しょうゆ',amount:'小さじ2'},{name:'ごま油',amount:'小さじ1'},{name:'白ごま',amount:'少々'}],
+      steps:['ピーマンを細切り、じゃこと炒める。','しょうゆとごま油で味付け。','ごまを散らす。'] },
+    { id:'r238', name:'オクラの豚巻き', emoji:'🌿', cat:'副菜', time:15, serves:2, tags:['オクラ','豚肉','お弁当'],
+      ingredients:[{name:'オクラ',amount:'8本'},{name:'豚バラ薄切り',amount:'8枚'},{name:'しょうゆ',amount:'大さじ1'},{name:'みりん',amount:'大さじ1'},{name:'砂糖',amount:'小さじ1'}],
+      steps:['オクラに豚バラを巻く。','フライパンで全面焼く。','調味料を加え絡める。'] },
+    { id:'r239', name:'セロリのきんぴら', emoji:'🌿', cat:'副菜', time:10, serves:2, tags:['セロリ','和食','作り置き'],
+      ingredients:[{name:'セロリ',amount:'2本'},{name:'ごま油',amount:'大さじ1'},{name:'しょうゆ',amount:'大さじ1'},{name:'みりん',amount:'大さじ1'},{name:'白ごま',amount:'少々'}],
+      steps:['セロリを細切り。','ごま油で炒め、しょうゆとみりんで味付け。','ごまを散らす。'] },
+    { id:'r240', name:'白菜の浅漬け', emoji:'🥬', cat:'副菜', time:10, serves:3, tags:['白菜','漬物','時短','作り置き'],
+      ingredients:[{name:'白菜',amount:'1/8個'},{name:'塩',amount:'小さじ1'},{name:'昆布',amount:'少々'},{name:'赤唐辛子',amount:'少々'}],
+      steps:['白菜をざく切り。','袋に入れ塩・昆布・唐辛子を揉み込む。','10分以上置く。'] },
+    { id:'r241', name:'キャベツの塩昆布和え', emoji:'🥬', cat:'副菜', time:5, serves:2, tags:['キャベツ','塩昆布','時短'],
+      ingredients:[{name:'キャベツ',amount:'1/8個'},{name:'塩昆布',amount:'大さじ2'},{name:'ごま油',amount:'小さじ1'},{name:'白ごま',amount:'少々'}],
+      steps:['キャベツをちぎる。','塩昆布とごま油で和える。'] },
+    { id:'r242', name:'ナムル三種盛り', emoji:'🥬', cat:'副菜', time:15, serves:3, tags:['韓国','野菜','作り置き'],
+      ingredients:[{name:'ほうれん草',amount:'1/2束'},{name:'もやし',amount:'1/2袋'},{name:'にんじん',amount:'1/2本'},{name:'ごま油',amount:'大さじ2'},{name:'しょうゆ',amount:'大さじ1'},{name:'塩',amount:'少々'},{name:'白ごま',amount:'少々'}],
+      steps:['3種の野菜をそれぞれ茹でる。','それぞれにごま油・塩・ごまを加え和える。'] },
+    { id:'r243', name:'にんじんしりしり', emoji:'🥕', cat:'副菜', time:15, serves:2, tags:['にんじん','沖縄','卵'],
+      ingredients:[{name:'にんじん',amount:'2本'},{name:'ツナ缶',amount:'1缶'},{name:'卵',amount:'1個'},{name:'しょうゆ',amount:'大さじ1'},{name:'塩こしょう',amount:'少々'},{name:'ごま油',amount:'少々'}],
+      steps:['にんじんを千切り。','ごま油で炒め、ツナを加える。','溶き卵を加え、しょうゆで味付け。'] },
+    { id:'r244', name:'とうもろこし焼き', emoji:'🌽', cat:'副菜', time:15, serves:2, tags:['とうもろこし','夏','甘辛'],
+      ingredients:[{name:'とうもろこし',amount:'2本'},{name:'しょうゆ',amount:'大さじ1'},{name:'みりん',amount:'大さじ1'},{name:'バター',amount:'10g'}],
+      steps:['とうもろこしを茹でる。','グリルで焼き色付け。','しょうゆみりんのタレを塗る。'] },
+    { id:'r245', name:'焼きなす', emoji:'🍆', cat:'副菜', time:15, serves:2, tags:['なす','夏','和食'],
+      ingredients:[{name:'なす',amount:'3本'},{name:'しょうが',amount:'1かけ'},{name:'かつお節',amount:'少々'},{name:'しょうゆ',amount:'適量'}],
+      steps:['なすを皮が真っ黒になるまで焼く。','皮を剥く。','しょうがとかつお節をのせしょうゆをかける。'] },
+    { id:'r246', name:'鰹の梅和え', emoji:'🌸', cat:'副菜', time:5, serves:2, tags:['鰹','梅','さっぱり','生'],
+      ingredients:[{name:'鰹刺身',amount:'100g'},{name:'梅干し',amount:'2個'},{name:'大葉',amount:'4枚'},{name:'しょうゆ',amount:'小さじ1'},{name:'みりん',amount:'小さじ1'}],
+      steps:['鰹を薄切り。','梅肉としょうゆみりんを混ぜる。','鰹を和え、大葉を添える。'] },
+    { id:'r247', name:'いかと里芋の煮物', emoji:'🦑', cat:'副菜', time:30, serves:3, tags:['イカ','里芋','煮物','和食'],
+      ingredients:[{name:'イカ',amount:'1杯'},{name:'里芋',amount:'5個'},{name:'しょうゆ',amount:'大さじ2'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'だし',amount:'300ml'}],
+      steps:['イカと里芋を下処理し一口大に。','鍋でだしと調味料を煮立て、里芋を加え15分。','イカを加え5分煮る。'] },
+    { id:'r248', name:'ひじきと豆のサラダ', emoji:'🫘', cat:'副菜', time:15, serves:3, tags:['ひじき','豆','ヘルシー','作り置き'],
+      ingredients:[{name:'乾燥ひじき',amount:'15g'},{name:'ミックスビーンズ缶',amount:'1缶'},{name:'にんじん',amount:'1/3本'},{name:'ツナ缶',amount:'1缶'},{name:'マヨネーズ',amount:'大さじ2'},{name:'しょうゆ',amount:'小さじ1'}],
+      steps:['ひじきを戻し、にんじんを千切り下茹で。','全て混ぜマヨとしょうゆで和える。'] },
+    { id:'r249', name:'豆苗と卵炒め', emoji:'🌱', cat:'副菜', time:10, serves:2, tags:['豆苗','卵','時短'],
+      ingredients:[{name:'豆苗',amount:'1袋'},{name:'卵',amount:'2個'},{name:'しょうゆ',amount:'小さじ1'},{name:'塩こしょう',amount:'少々'},{name:'ごま油',amount:'大さじ1'}],
+      steps:['豆苗を半分に切る。','卵を炒めて取り出す。','豆苗を炒め卵を戻し、味付け。'] },
+    { id:'r250', name:'カリフラワーのカレー炒め', emoji:'🥦', cat:'副菜', time:10, serves:2, tags:['カリフラワー','カレー','洋風'],
+      ingredients:[{name:'カリフラワー',amount:'1/2個'},{name:'カレー粉',amount:'小さじ1'},{name:'オリーブオイル',amount:'大さじ1'},{name:'塩こしょう',amount:'少々'}],
+      steps:['カリフラワーを小房に分け下茹で。','オイルで炒め、カレー粉と塩こしょうで味付け。'] },
+    { id:'r251', name:'菜の花のおひたし', emoji:'🌸', cat:'副菜', time:10, serves:2, tags:['菜の花','春','和食'],
+      ingredients:[{name:'菜の花',amount:'1束'},{name:'だし',amount:'大さじ3'},{name:'しょうゆ',amount:'大さじ1'},{name:'鰹節',amount:'少々'}],
+      steps:['菜の花を塩茹で、水気を絞り4cm幅。','だしとしょうゆで浸す。','鰹節を散らす。'] },
+    { id:'r252', name:'スナップえんどうの塩炒め', emoji:'🫛', cat:'副菜', time:8, serves:2, tags:['野菜','春','時短'],
+      ingredients:[{name:'スナップえんどう',amount:'150g'},{name:'オリーブオイル',amount:'大さじ1'},{name:'塩',amount:'少々'},{name:'にんにく',amount:'少々'}],
+      steps:['スナップえんどうの筋を取る。','オイルとにんにくで炒め、塩で味付け。'] },
+    { id:'r253', name:'にら玉', emoji:'🍳', cat:'副菜', time:10, serves:2, tags:['にら','卵','中華','時短'],
+      ingredients:[{name:'にら',amount:'1束'},{name:'卵',amount:'3個'},{name:'しょうゆ',amount:'小さじ1'},{name:'塩こしょう',amount:'少々'},{name:'ごま油',amount:'大さじ1'}],
+      steps:['にらを3cm幅に切る。','卵を溶く。','ごま油でにらを炒め、卵を加える。','しょうゆで仕上げ。'] },
+    { id:'r254', name:'きのこと豆腐の炒め物', emoji:'🍄', cat:'副菜', time:15, serves:2, tags:['きのこ','豆腐','ヘルシー'],
+      ingredients:[{name:'木綿豆腐',amount:'1/2丁'},{name:'しめじ',amount:'1パック'},{name:'エリンギ',amount:'1本'},{name:'しょうゆ',amount:'大さじ1'},{name:'みりん',amount:'大さじ1'},{name:'バター',amount:'10g'}],
+      steps:['豆腐を水切りし角切り。','きのこをほぐす。','バターで炒め、調味料で味付け。'] },
+    { id:'r255', name:'長いもの短冊サラダ', emoji:'🥬', cat:'副菜', time:10, serves:2, tags:['長いも','和食','時短','シャキシャキ'],
+      ingredients:[{name:'長いも',amount:'200g'},{name:'刻み海苔',amount:'適量'},{name:'しょうゆ',amount:'大さじ1'},{name:'わさび',amount:'少々'}],
+      steps:['長いもを短冊切り。','しょうゆとわさびを混ぜ、かけて海苔を散らす。'] },
+
+    // ─── 汁物 (r256-r265) ──────────────────────────────────────
+    { id:'r256', name:'はまぐりのお吸い物', emoji:'🐚', cat:'汁物', time:10, serves:2, tags:['はまぐり','和食','ひな祭り','行事食'],
+      ingredients:[{name:'はまぐり',amount:'6個'},{name:'だし',amount:'400ml'},{name:'しょうゆ',amount:'小さじ1'},{name:'塩',amount:'少々'},{name:'三つ葉',amount:'少々'}],
+      steps:['はまぐりを砂抜き。','だしとはまぐりを温め、口が開いたら味付け。','三つ葉を添える。'] },
+    { id:'r257', name:'松茸のお吸い物', emoji:'🍵', cat:'汁物', time:10, serves:2, tags:['松茸','上品','秋','時短'],
+      ingredients:[{name:'松茸（市販お吸い物の素でも可）',amount:'1袋'},{name:'熱湯',amount:'400ml'},{name:'しょうゆ',amount:'少々'}],
+      steps:['椀に素（または松茸スライス）を入れる。','熱湯を注ぐ。','しょうゆ少々で。'] },
+    { id:'r258', name:'かき卵のトマトスープ', emoji:'🍅', cat:'汁物', time:15, serves:2, tags:['トマト','卵','洋風'],
+      ingredients:[{name:'トマト',amount:'1個'},{name:'卵',amount:'1個'},{name:'コンソメ',amount:'1個'},{name:'水',amount:'400ml'},{name:'塩こしょう',amount:'少々'},{name:'パセリ',amount:'少々'}],
+      steps:['トマトを角切り、スープで煮る。','溶き卵を細く回し入れる。','塩こしょうで。'] },
+    { id:'r259', name:'ガスパチョ', emoji:'🥣', cat:'汁物', time:15, serves:2, tags:['トマト','冷たい','夏','洋風'],
+      ingredients:[{name:'トマト',amount:'3個'},{name:'きゅうり',amount:'1/2本'},{name:'パプリカ',amount:'1/2個'},{name:'玉ねぎ',amount:'1/4個'},{name:'にんにく',amount:'少々'},{name:'オリーブオイル',amount:'大さじ2'},{name:'酢',amount:'大さじ1'},{name:'塩こしょう',amount:'少々'}],
+      steps:['野菜をざく切りにしミキサーへ。','調味料を加え撹拌。','冷蔵庫で冷やす。'] },
+    { id:'r260', name:'キムチスープ', emoji:'🌶', cat:'汁物', time:15, serves:2, tags:['韓国','キムチ','ピリ辛'],
+      ingredients:[{name:'キムチ',amount:'100g'},{name:'豆腐',amount:'1/2丁'},{name:'鶏がらスープ',amount:'500ml'},{name:'卵',amount:'1個'},{name:'しょうゆ',amount:'小さじ1'},{name:'にら',amount:'少々'},{name:'ごま油',amount:'少々'}],
+      steps:['キムチとスープを煮立てる。','豆腐を加え煮る。','溶き卵を回し入れ、にらとごま油で仕上げ。'] },
+    { id:'r261', name:'スンドゥブチゲ', emoji:'🌶', cat:'汁物', time:20, serves:2, tags:['韓国','豆腐','辛い'],
+      ingredients:[{name:'絹豆腐',amount:'1丁'},{name:'豚バラ',amount:'100g'},{name:'あさり',amount:'100g'},{name:'キムチ',amount:'100g'},{name:'鶏がらスープ',amount:'500ml'},{name:'コチュジャン',amount:'大さじ1'},{name:'卵',amount:'2個'},{name:'長ねぎ',amount:'1/2本'}],
+      steps:['豚とキムチを炒める。','スープ・コチュジャン・豆腐を加え煮る。','あさりを加え、卵を割り入れる。','ねぎを散らす。'] },
+    { id:'r262', name:'担々風ごま味噌スープ', emoji:'🥣', cat:'汁物', time:15, serves:2, tags:['ごま','味噌','中華','濃厚'],
+      ingredients:[{name:'豚ひき肉',amount:'100g'},{name:'鶏がらスープ',amount:'500ml'},{name:'味噌',amount:'大さじ2'},{name:'すりごま',amount:'大さじ3'},{name:'豆板醤',amount:'小さじ1/2'},{name:'しょうゆ',amount:'小さじ1'},{name:'ごま油',amount:'少々'},{name:'長ねぎ',amount:'少々'}],
+      steps:['ひき肉を炒める。','スープと調味料を加え、ごまを加え煮る。','ねぎとごま油で仕上げ。'] },
+    { id:'r263', name:'白菜と油揚げの味噌汁', emoji:'🥣', cat:'汁物', time:15, serves:3, tags:['白菜','油揚げ','味噌'],
+      ingredients:[{name:'白菜',amount:'2枚'},{name:'油揚げ',amount:'1枚'},{name:'だし',amount:'500ml'},{name:'味噌',amount:'大さじ2'}],
+      steps:['白菜をざく切り、油揚げを短冊。','だしで煮て味噌を溶く。'] },
+    { id:'r264', name:'かぼちゃとさつまいもの味噌汁', emoji:'🎃', cat:'汁物', time:20, serves:3, tags:['かぼちゃ','さつまいも','味噌','秋','甘い'],
+      ingredients:[{name:'かぼちゃ',amount:'100g'},{name:'さつまいも',amount:'100g'},{name:'油揚げ',amount:'1枚'},{name:'だし',amount:'500ml'},{name:'味噌',amount:'大さじ2'}],
+      steps:['かぼちゃとさつまいもを一口大。','だしで柔らかくなるまで煮る。','油揚げを加え、味噌を溶く。'] },
+    { id:'r265', name:'きのこの豆乳スープ', emoji:'🍄', cat:'汁物', time:15, serves:2, tags:['きのこ','豆乳','ヘルシー'],
+      ingredients:[{name:'しめじ',amount:'1パック'},{name:'豆乳',amount:'300ml'},{name:'コンソメ',amount:'1個'},{name:'水',amount:'150ml'},{name:'塩こしょう',amount:'少々'},{name:'バター',amount:'10g'}],
+      steps:['きのこをほぐしてバターで炒める。','水とコンソメで煮立て、豆乳を加え温める。','塩こしょうで。'] },
+
+    // ══════════════════════════════════════════════════════════════════
+    // v1.5 recipe expansion (r266–r400) — target 400 total
+    // ══════════════════════════════════════════════════════════════════
+
+    // r266-r283 主食 +18
+    { id:'r266', name:'きつねそば', emoji:'🍜', cat:'主食', time:12, serves:2, tags:['麺','そば','油揚げ'],
+      ingredients:[{name:'そば',amount:'2玉'},{name:'油揚げ',amount:'2枚'},{name:'めんつゆ',amount:'150ml'},{name:'水',amount:'600ml'},{name:'ねぎ',amount:'適量'}],
+      steps:['油揚げを甘く煮含める。','そばを茹でて器へ。','つゆを張り、油揚げとねぎを乗せる。'] },
+    { id:'r267', name:'山菜うどん', emoji:'🍜', cat:'主食', time:12, serves:2, tags:['うどん','山菜','和'],
+      ingredients:[{name:'うどん',amount:'2玉'},{name:'山菜ミックス',amount:'1袋'},{name:'めんつゆ',amount:'150ml'},{name:'水',amount:'600ml'}],
+      steps:['うどんを茹でる。','つゆを温め、山菜を加える。','器に盛って完成。'] },
+    { id:'r268', name:'サラダうどん', emoji:'🥗', cat:'主食', time:10, serves:2, tags:['うどん','サラダ','冷','さっぱり'],
+      ingredients:[{name:'うどん',amount:'2玉'},{name:'レタス',amount:'2枚'},{name:'トマト',amount:'1個'},{name:'ツナ缶',amount:'1缶'},{name:'めんつゆ',amount:'100ml'},{name:'マヨネーズ',amount:'大さじ1'}],
+      steps:['うどんを茹でて冷水で締める。','野菜とツナを乗せる。','つゆとマヨを合わせてかける。'] },
+    { id:'r269', name:'釜玉うどん', emoji:'🥚', cat:'主食', time:8, serves:2, tags:['うどん','卵','簡単'],
+      ingredients:[{name:'うどん',amount:'2玉'},{name:'卵',amount:'2個'},{name:'めんつゆ',amount:'大さじ2'},{name:'ねぎ',amount:'適量'}],
+      steps:['うどんを茹でてすぐに器へ。','卵を落とし、つゆをかける。','ねぎを散らす。'] },
+    { id:'r270', name:'ぶっかけうどん', emoji:'🍜', cat:'主食', time:10, serves:2, tags:['うどん','冷','夏'],
+      ingredients:[{name:'うどん',amount:'2玉'},{name:'めんつゆ',amount:'200ml'},{name:'大根おろし',amount:'適量'},{name:'ねぎ',amount:'適量'},{name:'天かす',amount:'大さじ2'}],
+      steps:['うどんを茹でて冷水で締める。','つゆを器に。','薬味を乗せて食べる。'] },
+    { id:'r271', name:'台湾まぜそば', emoji:'🍜', cat:'主食', time:18, serves:2, tags:['麺','ピリ辛','台湾風','濃厚'],
+      ingredients:[{name:'中華麺',amount:'2玉'},{name:'豚ひき肉',amount:'150g'},{name:'にら',amount:'1/3束'},{name:'卵黄',amount:'2個'},{name:'醤油',amount:'大さじ2'},{name:'豆板醤',amount:'小さじ1'},{name:'ごま油',amount:'大さじ1'},{name:'おろしにんにく',amount:'小さじ1'}],
+      steps:['ひき肉を炒め、調味料で味を付ける。','麺を茹で、ごま油と和える。','具材と卵黄を乗せる。'] },
+    { id:'r272', name:'中華粥', emoji:'🥣', cat:'主食', time:30, serves:2, tags:['粥','中華','優しい'],
+      ingredients:[{name:'米',amount:'1/2合'},{name:'水',amount:'800ml'},{name:'鶏ガラ',amount:'小さじ2'},{name:'生姜',amount:'1片'},{name:'塩',amount:'少々'},{name:'ねぎ',amount:'適量'}],
+      steps:['米を洗い、鍋に水と生姜を入れて弱火で炊く。','鶏ガラと塩で調味。','ねぎを散らす。'] },
+    { id:'r273', name:'豆ご飯', emoji:'🍚', cat:'主食', time:45, serves:4, tags:['米','豆','季節'],
+      ingredients:[{name:'米',amount:'2合'},{name:'グリンピース',amount:'100g'},{name:'塩',amount:'小さじ1/2'},{name:'酒',amount:'大さじ1'}],
+      steps:['米を研いで水加減。','塩・酒・豆を加えて炊く。','炊き上がったら切るように混ぜる。'] },
+    { id:'r274', name:'しらすご飯', emoji:'🍚', cat:'主食', time:5, serves:2, tags:['しらす','ご飯','簡単'],
+      ingredients:[{name:'ご飯',amount:'2杯'},{name:'しらす',amount:'40g'},{name:'大葉',amount:'2枚'},{name:'醤油',amount:'少々'}],
+      steps:['ご飯にしらすを乗せる。','大葉を散らし、醤油を垂らす。'] },
+    { id:'r275', name:'梅かつおご飯', emoji:'🍙', cat:'主食', time:5, serves:2, tags:['梅','かつお','さっぱり'],
+      ingredients:[{name:'ご飯',amount:'2杯'},{name:'梅干し',amount:'2個'},{name:'かつお節',amount:'1袋'},{name:'醤油',amount:'少々'}],
+      steps:['梅を叩く。','ご飯に混ぜ、かつお節と醤油。'] },
+    { id:'r276', name:'魚介トマトパスタ', emoji:'🍝', cat:'主食', time:20, serves:2, tags:['パスタ','魚介','トマト'],
+      ingredients:[{name:'スパゲッティ',amount:'160g'},{name:'シーフードミックス',amount:'150g'},{name:'トマト缶',amount:'1/2缶'},{name:'にんにく',amount:'1片'},{name:'オリーブオイル',amount:'大さじ2'},{name:'塩',amount:'少々'},{name:'パセリ',amount:'適量'}],
+      steps:['にんにくを香り立てて魚介を炒める。','トマト缶を加えて煮る。','茹でたパスタと和えて盛り付ける。'] },
+    { id:'r277', name:'明太子パスタ', emoji:'🍝', cat:'主食', time:12, serves:2, tags:['パスタ','明太子','和風'],
+      ingredients:[{name:'スパゲッティ',amount:'160g'},{name:'明太子',amount:'1腹'},{name:'バター',amount:'20g'},{name:'牛乳',amount:'大さじ2'},{name:'刻み海苔',amount:'適量'},{name:'大葉',amount:'2枚'}],
+      steps:['明太子とバター、牛乳を和える。','茹でたパスタを絡める。','海苔と大葉を乗せる。'] },
+    { id:'r278', name:'和風きのこパスタ', emoji:'🍝', cat:'主食', time:15, serves:2, tags:['パスタ','きのこ','和風'],
+      ingredients:[{name:'スパゲッティ',amount:'160g'},{name:'しめじ',amount:'1パック'},{name:'えのき',amount:'1/2袋'},{name:'バター',amount:'20g'},{name:'醤油',amount:'大さじ1'},{name:'にんにく',amount:'1片'},{name:'刻み海苔',amount:'適量'}],
+      steps:['にんにくできのこを炒める。','バターと醤油で調味。','茹でたパスタと和えて海苔を乗せる。'] },
+    { id:'r279', name:'ほうれん草ベーコンパスタ', emoji:'🍝', cat:'主食', time:15, serves:2, tags:['パスタ','ベーコン','ほうれん草'],
+      ingredients:[{name:'スパゲッティ',amount:'160g'},{name:'ベーコン',amount:'80g'},{name:'ほうれん草',amount:'1/2束'},{name:'にんにく',amount:'1片'},{name:'オリーブオイル',amount:'大さじ2'},{name:'塩こしょう',amount:'少々'}],
+      steps:['にんにくとベーコンを炒める。','ほうれん草を加えてさっと炒める。','パスタと和えて塩こしょう。'] },
+    { id:'r280', name:'ボロネーゼ', emoji:'🍝', cat:'主食', time:25, serves:2, tags:['パスタ','ミートソース','トマト'],
+      ingredients:[{name:'スパゲッティ',amount:'160g'},{name:'合いびき肉',amount:'200g'},{name:'玉ねぎ',amount:'1/2個'},{name:'トマト缶',amount:'1缶'},{name:'にんにく',amount:'1片'},{name:'赤ワイン',amount:'50ml'},{name:'塩こしょう',amount:'少々'},{name:'粉チーズ',amount:'適量'}],
+      steps:['玉ねぎとひき肉を炒める。','ワインとトマト缶で煮込む。','パスタに絡めてチーズを。'] },
+    { id:'r281', name:'アラビアータ', emoji:'🌶', cat:'主食', time:20, serves:2, tags:['パスタ','ピリ辛','トマト'],
+      ingredients:[{name:'スパゲッティ',amount:'160g'},{name:'トマト缶',amount:'1缶'},{name:'にんにく',amount:'2片'},{name:'唐辛子',amount:'1本'},{name:'オリーブオイル',amount:'大さじ2'},{name:'塩',amount:'少々'}],
+      steps:['にんにくと唐辛子をオイルで香り出し。','トマト缶を煮詰める。','茹でたパスタと和える。'] },
+    { id:'r282', name:'鮭チャーハン', emoji:'🍚', cat:'主食', time:12, serves:2, tags:['チャーハン','鮭','簡単'],
+      ingredients:[{name:'ご飯',amount:'2杯'},{name:'鮭フレーク',amount:'大さじ4'},{name:'卵',amount:'2個'},{name:'ねぎ',amount:'適量'},{name:'塩こしょう',amount:'少々'},{name:'醤油',amount:'小さじ1'},{name:'ごま油',amount:'大さじ1'}],
+      steps:['卵を炒めて鮭とご飯を加える。','ねぎと塩こしょう、醤油で調味。','強火で仕上げる。'] },
+    { id:'r283', name:'エビチャーハン', emoji:'🍤', cat:'主食', time:15, serves:2, tags:['チャーハン','エビ','中華'],
+      ingredients:[{name:'ご飯',amount:'2杯'},{name:'むきエビ',amount:'150g'},{name:'卵',amount:'2個'},{name:'ねぎ',amount:'適量'},{name:'塩こしょう',amount:'少々'},{name:'鶏ガラ',amount:'小さじ1'},{name:'ごま油',amount:'大さじ1'}],
+      steps:['エビを炒めて取り出す。','卵とご飯を炒め、エビを戻す。','調味料で味を決める。'] },
+
+    // r284-r328 主菜 +45
+    { id:'r284', name:'鶏の南蛮漬け', emoji:'🍗', cat:'主菜', time:25, serves:3, tags:['鶏','さっぱり','漬け'],
+      ingredients:[{name:'鶏もも肉',amount:'1枚'},{name:'玉ねぎ',amount:'1/2個'},{name:'にんじん',amount:'1/3本'},{name:'酢',amount:'大さじ3'},{name:'醤油',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'片栗粉',amount:'大さじ3'}],
+      steps:['鶏に粉をまぶして揚げ焼き。','南蛮だれと野菜を合わせる。','揚げた鶏を漬け込む。'] },
+    { id:'r285', name:'鶏と大根の煮物', emoji:'🍗', cat:'主菜', time:35, serves:3, tags:['鶏','大根','煮物'],
+      ingredients:[{name:'鶏もも肉',amount:'1枚'},{name:'大根',amount:'1/3本'},{name:'醤油',amount:'大さじ3'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'だし',amount:'300ml'}],
+      steps:['大根を下茹でする。','鶏と合わせて煮汁で煮る。','落し蓋で味を染ませる。'] },
+    { id:'r286', name:'鶏の味噌焼き', emoji:'🍗', cat:'主菜', time:20, serves:2, tags:['鶏','味噌','焼く'],
+      ingredients:[{name:'鶏もも肉',amount:'1枚'},{name:'味噌',amount:'大さじ2'},{name:'みりん',amount:'大さじ1'},{name:'砂糖',amount:'小さじ1'},{name:'酒',amount:'大さじ1'}],
+      steps:['鶏を味噌だれに漬ける。','フライパンで皮から焼く。','裏返して火を通す。'] },
+    { id:'r287', name:'棒々鶏', emoji:'🍗', cat:'主菜', time:20, serves:2, tags:['鶏','中華','冷'],
+      ingredients:[{name:'鶏むね肉',amount:'1枚'},{name:'きゅうり',amount:'1本'},{name:'ごまだれ',amount:'大さじ3'},{name:'醤油',amount:'小さじ1'},{name:'ラー油',amount:'少々'}],
+      steps:['鶏をゆでて裂く。','きゅうりを千切り。','器に盛ってごまだれをかける。'] },
+    { id:'r288', name:'よだれ鶏', emoji:'🌶', cat:'主菜', time:25, serves:2, tags:['鶏','中華','ピリ辛'],
+      ingredients:[{name:'鶏むね肉',amount:'1枚'},{name:'醤油',amount:'大さじ2'},{name:'酢',amount:'大さじ1'},{name:'ラー油',amount:'小さじ1'},{name:'砂糖',amount:'小さじ1'},{name:'花椒',amount:'少々'},{name:'にんにく',amount:'1片'},{name:'ねぎ',amount:'適量'}],
+      steps:['鶏を茹でて冷ます。','調味料を合わせてたれを作る。','スライスした鶏にたれをかける。'] },
+    { id:'r289', name:'ヤンニョムチキン', emoji:'🌶', cat:'主菜', time:25, serves:3, tags:['鶏','韓国','ピリ辛','甘辛'],
+      ingredients:[{name:'鶏もも肉',amount:'400g'},{name:'片栗粉',amount:'大さじ3'},{name:'コチュジャン',amount:'大さじ2'},{name:'ケチャップ',amount:'大さじ2'},{name:'醤油',amount:'大さじ1'},{name:'砂糖',amount:'大さじ1'},{name:'にんにく',amount:'1片'}],
+      steps:['鶏に粉をまぶして揚げ焼き。','たれを煮詰める。','鶏を絡める。'] },
+    { id:'r290', name:'タンドリーチキン', emoji:'🍗', cat:'主菜', time:30, serves:3, tags:['鶏','インド','スパイス'],
+      ingredients:[{name:'鶏もも肉',amount:'2枚'},{name:'ヨーグルト',amount:'100g'},{name:'カレー粉',amount:'大さじ1'},{name:'ケチャップ',amount:'大さじ1'},{name:'にんにく',amount:'1片'},{name:'生姜',amount:'1片'},{name:'塩',amount:'小さじ1/2'}],
+      steps:['鶏を漬けだれに30分漬ける。','フライパンかオーブンで焼く。','中までしっかり火を通す。'] },
+    { id:'r291', name:'ゴーヤチャンプルー', emoji:'🥒', cat:'主菜', time:15, serves:2, tags:['沖縄','野菜','豚肉'],
+      ingredients:[{name:'ゴーヤ',amount:'1本'},{name:'豚バラ',amount:'100g'},{name:'木綿豆腐',amount:'1/2丁'},{name:'卵',amount:'1個'},{name:'醤油',amount:'大さじ1'},{name:'かつお節',amount:'適量'}],
+      steps:['ゴーヤを薄切りにして塩もみ。','豚と豆腐を炒め、ゴーヤを加える。','卵でとじて醤油、かつお節を散らす。'] },
+    { id:'r292', name:'プルコギ', emoji:'🥩', cat:'主菜', time:20, serves:3, tags:['牛','韓国','甘辛'],
+      ingredients:[{name:'牛肉薄切り',amount:'300g'},{name:'玉ねぎ',amount:'1/2個'},{name:'にんじん',amount:'1/3本'},{name:'にら',amount:'1/3束'},{name:'醤油',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'ごま油',amount:'大さじ1'},{name:'にんにく',amount:'1片'}],
+      steps:['牛肉をたれに漬ける。','野菜と一緒に炒める。','仕上げにごま油。'] },
+    { id:'r293', name:'スープカレー', emoji:'🍛', cat:'主菜', time:40, serves:3, tags:['カレー','スープ','札幌'],
+      ingredients:[{name:'鶏もも肉',amount:'2枚'},{name:'じゃがいも',amount:'2個'},{name:'にんじん',amount:'1本'},{name:'ピーマン',amount:'2個'},{name:'カレー粉',amount:'大さじ2'},{name:'トマト缶',amount:'1/2缶'},{name:'コンソメ',amount:'2個'},{name:'水',amount:'700ml'}],
+      steps:['鶏と野菜を焼き目付け。','煮込みスープで30分煮る。','器に盛る。'] },
+    { id:'r294', name:'銀ダラの煮付け', emoji:'🐟', cat:'主菜', time:25, serves:2, tags:['魚','煮付け','上品'],
+      ingredients:[{name:'銀だら',amount:'2切'},{name:'醤油',amount:'大さじ2'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'生姜',amount:'1片'},{name:'酒',amount:'大さじ2'}],
+      steps:['調味料を煮立てる。','魚を入れて落し蓋で煮る。','煮汁をかけて仕上げる。'] },
+    { id:'r295', name:'サバ缶キーマ', emoji:'🍛', cat:'主菜', time:15, serves:2, tags:['サバ缶','キーマ','時短'],
+      ingredients:[{name:'サバ缶',amount:'1缶'},{name:'玉ねぎ',amount:'1/2個'},{name:'トマト缶',amount:'1/2缶'},{name:'カレー粉',amount:'大さじ2'},{name:'にんにく',amount:'1片'},{name:'生姜',amount:'1片'},{name:'塩',amount:'小さじ1/2'}],
+      steps:['玉ねぎを炒める。','サバ缶とトマト缶、カレー粉を加える。','10分煮詰めて塩で整える。'] },
+    { id:'r296', name:'牛すじ煮込み', emoji:'🥩', cat:'主菜', time:90, serves:4, tags:['牛','煮込み','居酒屋'],
+      ingredients:[{name:'牛すじ',amount:'500g'},{name:'こんにゃく',amount:'1枚'},{name:'大根',amount:'1/3本'},{name:'味噌',amount:'大さじ3'},{name:'醤油',amount:'大さじ2'},{name:'みりん',amount:'大さじ2'},{name:'生姜',amount:'1片'}],
+      steps:['牛すじを下茹でして臭みを取る。','大根と味噌だれで1時間煮込む。','器に盛る。'] },
+    { id:'r297', name:'豚肩ロースのローストポーク', emoji:'🥩', cat:'主菜', time:60, serves:4, tags:['豚','オーブン','ごちそう'],
+      ingredients:[{name:'豚肩ロース',amount:'500g'},{name:'塩',amount:'小さじ1'},{name:'こしょう',amount:'少々'},{name:'ローズマリー',amount:'2枝'},{name:'にんにく',amount:'2片'},{name:'オリーブオイル',amount:'大さじ2'}],
+      steps:['塩こしょうを擦り込む。','表面を焼いて香り付け。','180度で30分オーブン。'] },
+    { id:'r298', name:'豚ヒレ肉のソテー', emoji:'🥩', cat:'主菜', time:20, serves:2, tags:['豚','ヒレ','さっぱり'],
+      ingredients:[{name:'豚ヒレ',amount:'300g'},{name:'塩こしょう',amount:'少々'},{name:'オリーブオイル',amount:'大さじ1'},{name:'バター',amount:'15g'},{name:'醤油',amount:'大さじ1'},{name:'玉ねぎ',amount:'1/4個'}],
+      steps:['豚ヒレを厚切りに。','フライパンで両面焼く。','玉ねぎソースをかける。'] },
+    { id:'r299', name:'豚肉の柔らか角煮', emoji:'🥩', cat:'主菜', time:120, serves:4, tags:['豚','角煮','長崎'],
+      ingredients:[{name:'豚バラブロック',amount:'500g'},{name:'醤油',amount:'大さじ4'},{name:'砂糖',amount:'大さじ3'},{name:'酒',amount:'100ml'},{name:'生姜',amount:'1片'},{name:'水',amount:'500ml'}],
+      steps:['豚を下茹で。','調味料でコトコト1時間半。','煮汁を煮詰めて絡める。'] },
+    { id:'r300', name:'ローストチキン', emoji:'🍗', cat:'主菜', time:60, serves:4, tags:['鶏','オーブン','ごちそう'],
+      ingredients:[{name:'鶏もも肉',amount:'3枚'},{name:'塩',amount:'小さじ1'},{name:'ハーブ',amount:'適量'},{name:'にんにく',amount:'2片'},{name:'オリーブオイル',amount:'大さじ2'},{name:'レモン',amount:'1/2個'}],
+      steps:['鶏に塩とハーブをすり込む。','180度で35分焼く。','レモンを絞る。'] },
+    { id:'r301', name:'鮭のムニエル', emoji:'🐟', cat:'主菜', time:15, serves:2, tags:['鮭','ムニエル','洋'],
+      ingredients:[{name:'鮭',amount:'2切'},{name:'小麦粉',amount:'適量'},{name:'塩こしょう',amount:'少々'},{name:'バター',amount:'20g'},{name:'レモン',amount:'1/2個'},{name:'パセリ',amount:'適量'}],
+      steps:['鮭に塩こしょうと小麦粉。','バターでソテー。','レモンとパセリを添える。'] },
+    { id:'r302', name:'サバのハーブ焼き', emoji:'🐟', cat:'主菜', time:20, serves:2, tags:['サバ','ハーブ','洋'],
+      ingredients:[{name:'サバ',amount:'2切'},{name:'塩こしょう',amount:'少々'},{name:'ハーブ',amount:'適量'},{name:'オリーブオイル',amount:'大さじ2'},{name:'レモン',amount:'1/2個'}],
+      steps:['サバにハーブとオイル。','フライパンで両面焼く。','レモンを添える。'] },
+    { id:'r303', name:'イワシの梅煮', emoji:'🐟', cat:'主菜', time:30, serves:2, tags:['イワシ','梅','和'],
+      ingredients:[{name:'イワシ',amount:'4尾'},{name:'梅干し',amount:'2個'},{name:'醤油',amount:'大さじ2'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'生姜',amount:'1片'},{name:'水',amount:'200ml'}],
+      steps:['イワシを下処理。','梅と生姜で煮る。','20分煮詰める。'] },
+    { id:'r304', name:'アジの塩焼き', emoji:'🐟', cat:'主菜', time:15, serves:2, tags:['アジ','塩焼き','和'],
+      ingredients:[{name:'アジ',amount:'2尾'},{name:'塩',amount:'適量'},{name:'大根おろし',amount:'適量'},{name:'レモン',amount:'1/2個'}],
+      steps:['アジに塩を振って10分。','グリルで両面焼く。','大根おろしとレモンで。'] },
+    { id:'r305', name:'カレイの煮付け', emoji:'🐟', cat:'主菜', time:20, serves:2, tags:['カレイ','煮付け','和'],
+      ingredients:[{name:'カレイ',amount:'2切'},{name:'醤油',amount:'大さじ2'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'生姜',amount:'1片'},{name:'酒',amount:'大さじ2'}],
+      steps:['煮汁を煮立てる。','カレイを入れて落し蓋。','10分煮る。'] },
+    { id:'r306', name:'タラのちり鍋', emoji:'🐟', cat:'主菜', time:25, serves:3, tags:['タラ','鍋','冬'],
+      ingredients:[{name:'タラ',amount:'3切'},{name:'白菜',amount:'1/4個'},{name:'長ねぎ',amount:'1本'},{name:'豆腐',amount:'1/2丁'},{name:'昆布',amount:'10cm'},{name:'ポン酢',amount:'適量'}],
+      steps:['昆布だしを取る。','野菜とタラを煮る。','ポン酢で食べる。'] },
+    { id:'r307', name:'エビチリ', emoji:'🍤', cat:'主菜', time:20, serves:2, tags:['エビ','中華','ピリ辛'],
+      ingredients:[{name:'むきエビ',amount:'200g'},{name:'長ねぎ',amount:'1/2本'},{name:'ケチャップ',amount:'大さじ3'},{name:'豆板醤',amount:'小さじ1'},{name:'にんにく',amount:'1片'},{name:'生姜',amount:'1片'},{name:'片栗粉',amount:'大さじ1'}],
+      steps:['エビに下味と片栗粉。','香味野菜を炒めソース作り。','エビを絡める。'] },
+    { id:'r308', name:'エビマヨ', emoji:'🍤', cat:'主菜', time:18, serves:2, tags:['エビ','マヨ','中華'],
+      ingredients:[{name:'むきエビ',amount:'200g'},{name:'マヨネーズ',amount:'大さじ3'},{name:'ケチャップ',amount:'大さじ1'},{name:'練乳',amount:'小さじ1'},{name:'片栗粉',amount:'大さじ2'},{name:'レモン',amount:'1/4個'}],
+      steps:['エビに粉をまぶして揚げ焼き。','ソースを作る。','エビを絡める。'] },
+    { id:'r309', name:'イカと里芋の煮物', emoji:'🦑', cat:'主菜', time:30, serves:3, tags:['イカ','里芋','煮物'],
+      ingredients:[{name:'イカ',amount:'1杯'},{name:'里芋',amount:'400g'},{name:'醤油',amount:'大さじ2'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'だし',amount:'400ml'}],
+      steps:['里芋を下茹で。','イカを加えて煮汁で煮込む。','落し蓋で味を染ませる。'] },
+    { id:'r310', name:'ホタテのバター醤油', emoji:'🐚', cat:'主菜', time:12, serves:2, tags:['ホタテ','バター','醤油'],
+      ingredients:[{name:'ホタテ',amount:'8個'},{name:'バター',amount:'15g'},{name:'醤油',amount:'小さじ2'},{name:'にんにく',amount:'1片'},{name:'パセリ',amount:'適量'}],
+      steps:['ホタテを両面焼く。','バターと醤油を絡める。','パセリを散らす。'] },
+    { id:'r311', name:'白身魚のフライ', emoji:'🐟', cat:'主菜', time:25, serves:2, tags:['白身魚','揚げ','洋'],
+      ingredients:[{name:'タラ',amount:'3切'},{name:'小麦粉',amount:'適量'},{name:'卵',amount:'1個'},{name:'パン粉',amount:'適量'},{name:'タルタル',amount:'大さじ3'}],
+      steps:['魚に衣を付ける。','180度で揚げる。','タルタルを添える。'] },
+    { id:'r312', name:'チキン南蛮', emoji:'🍗', cat:'主菜', time:30, serves:3, tags:['鶏','揚げ','甘酢'],
+      ingredients:[{name:'鶏もも肉',amount:'2枚'},{name:'小麦粉',amount:'適量'},{name:'卵',amount:'1個'},{name:'醤油',amount:'大さじ2'},{name:'酢',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'タルタル',amount:'大さじ4'}],
+      steps:['鶏を揚げ焼き。','甘酢に漬ける。','タルタルをかける。'] },
+    { id:'r313', name:'チキンカツ', emoji:'🍗', cat:'主菜', time:25, serves:2, tags:['鶏','カツ','揚げ'],
+      ingredients:[{name:'鶏むね肉',amount:'2枚'},{name:'小麦粉',amount:'適量'},{name:'卵',amount:'1個'},{name:'パン粉',amount:'適量'},{name:'ソース',amount:'適量'},{name:'キャベツ',amount:'1/8個'}],
+      steps:['鶏に衣を付ける。','170度で揚げる。','ソースとキャベツで。'] },
+    { id:'r314', name:'ハンバーグ和風おろし', emoji:'🍖', cat:'主菜', time:30, serves:3, tags:['ハンバーグ','和風','おろし'],
+      ingredients:[{name:'合いびき肉',amount:'400g'},{name:'玉ねぎ',amount:'1/2個'},{name:'パン粉',amount:'大さじ4'},{name:'卵',amount:'1個'},{name:'大根おろし',amount:'1/2本分'},{name:'ポン酢',amount:'大さじ3'}],
+      steps:['ハンバーグを成形し焼く。','大根おろしを乗せる。','ポン酢をかける。'] },
+    { id:'r315', name:'煮込みハンバーグ', emoji:'🍖', cat:'主菜', time:35, serves:3, tags:['ハンバーグ','煮込み','洋'],
+      ingredients:[{name:'合いびき肉',amount:'400g'},{name:'玉ねぎ',amount:'1個'},{name:'パン粉',amount:'大さじ4'},{name:'卵',amount:'1個'},{name:'デミグラス缶',amount:'1缶'},{name:'赤ワイン',amount:'50ml'}],
+      steps:['ハンバーグを成形。','両面焼いてソースで煮る。','20分煮込む。'] },
+    { id:'r316', name:'メンチカツ', emoji:'🍖', cat:'主菜', time:30, serves:3, tags:['揚げ','ひき肉','洋'],
+      ingredients:[{name:'合いびき肉',amount:'300g'},{name:'玉ねぎ',amount:'1/2個'},{name:'パン粉',amount:'大さじ3'},{name:'卵',amount:'1個'},{name:'小麦粉',amount:'適量'},{name:'パン粉(衣)',amount:'適量'}],
+      steps:['タネを作り衣を付ける。','170度で揚げる。','ソースで食べる。'] },
+    { id:'r317', name:'ロールキャベツ', emoji:'🥬', cat:'主菜', time:50, serves:4, tags:['洋','煮込み','キャベツ'],
+      ingredients:[{name:'キャベツ',amount:'8枚'},{name:'合いびき肉',amount:'300g'},{name:'玉ねぎ',amount:'1/2個'},{name:'トマト缶',amount:'1缶'},{name:'コンソメ',amount:'2個'},{name:'水',amount:'300ml'}],
+      steps:['キャベツを下茹で。','肉を巻いて煮込む。','30分煮る。'] },
+    { id:'r318', name:'ロコモコ', emoji:'🍖', cat:'主菜', time:25, serves:2, tags:['ハワイ','丼','目玉焼き'],
+      ingredients:[{name:'合いびき肉',amount:'300g'},{name:'玉ねぎ',amount:'1/2個'},{name:'卵',amount:'2個'},{name:'ご飯',amount:'2杯'},{name:'デミソース',amount:'大さじ4'}],
+      steps:['ハンバーグを焼く。','目玉焼きを作る。','ご飯にのせてソース。'] },
+    { id:'r319', name:'ビーフシチュー', emoji:'🥩', cat:'主菜', time:90, serves:4, tags:['牛','シチュー','煮込み'],
+      ingredients:[{name:'牛肉',amount:'500g'},{name:'じゃがいも',amount:'3個'},{name:'にんじん',amount:'1本'},{name:'玉ねぎ',amount:'1個'},{name:'デミグラス缶',amount:'1缶'},{name:'赤ワイン',amount:'100ml'}],
+      steps:['牛肉を焼く。','野菜と煮込む。','1時間でとろり。'] },
+    { id:'r320', name:'牛ヒレステーキ', emoji:'🥩', cat:'主菜', time:15, serves:2, tags:['牛','ステーキ','ごちそう'],
+      ingredients:[{name:'牛ヒレ',amount:'250g'},{name:'塩こしょう',amount:'少々'},{name:'バター',amount:'15g'},{name:'にんにく',amount:'1片'},{name:'醤油',amount:'大さじ1'}],
+      steps:['肉を室温に戻す。','強火でサッと両面焼く。','醤油バターで仕上げる。'] },
+    { id:'r321', name:'豚しゃぶサラダ', emoji:'🥗', cat:'主菜', time:15, serves:2, tags:['豚','サラダ','ヘルシー'],
+      ingredients:[{name:'豚しゃぶ肉',amount:'200g'},{name:'レタス',amount:'4枚'},{name:'トマト',amount:'1個'},{name:'きゅうり',amount:'1本'},{name:'ごまだれ',amount:'大さじ3'}],
+      steps:['豚を茹でて冷ます。','野菜を盛り付ける。','ごまだれをかける。'] },
+    { id:'r322', name:'ぶりしゃぶ', emoji:'🐟', cat:'主菜', time:20, serves:3, tags:['ぶり','しゃぶしゃぶ','冬'],
+      ingredients:[{name:'ぶり',amount:'6切'},{name:'白菜',amount:'1/4個'},{name:'長ねぎ',amount:'1本'},{name:'昆布',amount:'10cm'},{name:'ポン酢',amount:'適量'}],
+      steps:['昆布だしを取る。','ぶりと野菜をしゃぶしゃぶ。','ポン酢で食べる。'] },
+    { id:'r323', name:'ピリ辛麻婆茄子', emoji:'🍆', cat:'主菜', time:18, serves:2, tags:['中華','茄子','ピリ辛'],
+      ingredients:[{name:'茄子',amount:'3本'},{name:'豚ひき肉',amount:'150g'},{name:'豆板醤',amount:'小さじ1'},{name:'醤油',amount:'大さじ1'},{name:'砂糖',amount:'小さじ1'},{name:'にんにく',amount:'1片'},{name:'生姜',amount:'1片'}],
+      steps:['茄子を素揚げ。','ひき肉と香味野菜を炒める。','茄子を加えて調味。'] },
+    { id:'r324', name:'豚キムチ', emoji:'🌶', cat:'主菜', time:15, serves:2, tags:['豚','キムチ','韓国'],
+      ingredients:[{name:'豚バラ',amount:'200g'},{name:'キムチ',amount:'150g'},{name:'もやし',amount:'1/2袋'},{name:'にら',amount:'1/3束'},{name:'ごま油',amount:'大さじ1'},{name:'醤油',amount:'小さじ2'}],
+      steps:['豚バラを炒める。','キムチと野菜を加える。','醤油で味を整える。'] },
+    { id:'r325', name:'鶏とナッツ炒め(宮保)', emoji:'🥜', cat:'主菜', time:20, serves:2, tags:['鶏','中華','ナッツ','ピリ辛'],
+      ingredients:[{name:'鶏むね肉',amount:'1枚'},{name:'カシューナッツ',amount:'50g'},{name:'ピーマン',amount:'2個'},{name:'豆板醤',amount:'小さじ1'},{name:'醤油',amount:'大さじ1'},{name:'酢',amount:'小さじ1'},{name:'砂糖',amount:'小さじ1'}],
+      steps:['鶏を下味で炒める。','野菜とナッツを加える。','調味料で味を整える。'] },
+    { id:'r326', name:'豚と白菜のミルフィーユ鍋', emoji:'🍲', cat:'主菜', time:30, serves:3, tags:['豚','白菜','鍋','簡単'],
+      ingredients:[{name:'豚バラ',amount:'300g'},{name:'白菜',amount:'1/2個'},{name:'昆布',amount:'10cm'},{name:'ポン酢',amount:'適量'},{name:'水',amount:'500ml'}],
+      steps:['白菜と豚を重ねて切る。','鍋に並べて煮る。','ポン酢で食べる。'] },
+    { id:'r327', name:'イワシのつみれ汁', emoji:'🐟', cat:'主菜', time:25, serves:3, tags:['イワシ','つみれ','汁'],
+      ingredients:[{name:'イワシつみれ',amount:'300g'},{name:'大根',amount:'1/4本'},{name:'にんじん',amount:'1/3本'},{name:'だし',amount:'700ml'},{name:'味噌',amount:'大さじ3'},{name:'ねぎ',amount:'適量'}],
+      steps:['野菜を煮る。','つみれを加える。','味噌を溶く。'] },
+    { id:'r328', name:'豚のカツレツ', emoji:'🍖', cat:'主菜', time:20, serves:2, tags:['豚','カツレツ','洋'],
+      ingredients:[{name:'豚ロース',amount:'2枚'},{name:'小麦粉',amount:'適量'},{name:'卵',amount:'1個'},{name:'パン粉',amount:'適量'},{name:'レモン',amount:'1/4個'}],
+      steps:['豚に衣を付ける。','薄めの油でカリッと焼く。','レモンで食べる。'] },
+
+    // r329-r333 丼もの +5
+    { id:'r329', name:'しらす丼', emoji:'🍚', cat:'丼もの', time:7, serves:2, tags:['しらす','簡単','丼'],
+      ingredients:[{name:'ご飯',amount:'2杯'},{name:'しらす',amount:'80g'},{name:'卵黄',amount:'2個'},{name:'大葉',amount:'2枚'},{name:'醤油',amount:'少々'}],
+      steps:['ご飯にしらすを乗せる。','卵黄と大葉を添える。','醤油を垂らす。'] },
+    { id:'r330', name:'ツナマヨ丼', emoji:'🍚', cat:'丼もの', time:5, serves:2, tags:['ツナ','マヨ','簡単'],
+      ingredients:[{name:'ご飯',amount:'2杯'},{name:'ツナ缶',amount:'2缶'},{name:'マヨネーズ',amount:'大さじ3'},{name:'醤油',amount:'小さじ1'},{name:'ねぎ',amount:'適量'}],
+      steps:['ツナとマヨを和える。','ご飯に乗せる。','ねぎと醤油で。'] },
+    { id:'r331', name:'焼肉丼', emoji:'🥩', cat:'丼もの', time:15, serves:2, tags:['焼肉','丼','ご飯'],
+      ingredients:[{name:'牛肉',amount:'250g'},{name:'玉ねぎ',amount:'1/2個'},{name:'焼肉のたれ',amount:'大さじ4'},{name:'ご飯',amount:'2杯'},{name:'卵黄',amount:'2個'}],
+      steps:['牛肉を焼く。','たれを絡める。','ご飯に乗せて卵黄を。'] },
+    { id:'r332', name:'焼き鳥丼', emoji:'🍗', cat:'丼もの', time:20, serves:2, tags:['焼き鳥','丼','甘辛'],
+      ingredients:[{name:'鶏もも肉',amount:'1枚'},{name:'長ねぎ',amount:'1本'},{name:'醤油',amount:'大さじ2'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'ご飯',amount:'2杯'}],
+      steps:['鶏とねぎを串に刺さず焼く。','たれを絡める。','ご飯に乗せる。'] },
+    { id:'r333', name:'ローストビーフ丼', emoji:'🥩', cat:'丼もの', time:25, serves:2, tags:['牛','ごちそう','丼'],
+      ingredients:[{name:'ローストビーフ',amount:'200g'},{name:'ご飯',amount:'2杯'},{name:'玉ねぎ',amount:'1/2個'},{name:'醤油',amount:'大さじ2'},{name:'みりん',amount:'大さじ2'},{name:'卵黄',amount:'2個'}],
+      steps:['玉ねぎソースを作る。','ご飯にローストビーフを乗せる。','ソースと卵黄。'] },
+
+    // r334-r345 一品 +12
+    { id:'r334', name:'鶏団子スープ', emoji:'🥣', cat:'一品', time:20, serves:3, tags:['鶏団子','スープ','ヘルシー'],
+      ingredients:[{name:'鶏ひき肉',amount:'250g'},{name:'白菜',amount:'2枚'},{name:'にんじん',amount:'1/3本'},{name:'だし',amount:'700ml'},{name:'醤油',amount:'大さじ2'},{name:'生姜',amount:'1片'}],
+      steps:['鶏団子を作る。','野菜と一緒に煮込む。','調味で仕上げる。'] },
+    { id:'r335', name:'トマト鍋', emoji:'🍅', cat:'一品', time:25, serves:3, tags:['鍋','トマト','洋風'],
+      ingredients:[{name:'鶏もも肉',amount:'300g'},{name:'キャベツ',amount:'1/4個'},{name:'トマト缶',amount:'1缶'},{name:'コンソメ',amount:'2個'},{name:'水',amount:'500ml'},{name:'チーズ',amount:'適量'}],
+      steps:['鶏と野菜を煮る。','トマトベースで20分。','チーズを最後に。'] },
+    { id:'r336', name:'チーズフォンデュ', emoji:'🫕', cat:'一品', time:20, serves:3, tags:['チーズ','洋','パーティー'],
+      ingredients:[{name:'チーズ',amount:'300g'},{name:'白ワイン',amount:'100ml'},{name:'にんにく',amount:'1片'},{name:'バゲット',amount:'1本'},{name:'野菜',amount:'適量'}],
+      steps:['鍋にチーズとワインを溶かす。','具材を用意。','絡めて食べる。'] },
+    { id:'r337', name:'アクアパッツァ', emoji:'🐟', cat:'一品', time:30, serves:3, tags:['魚','洋','イタリアン'],
+      ingredients:[{name:'白身魚',amount:'2切'},{name:'あさり',amount:'200g'},{name:'トマト',amount:'2個'},{name:'オリーブ',amount:'10個'},{name:'にんにく',amount:'2片'},{name:'白ワイン',amount:'100ml'}],
+      steps:['魚を焼き目付け。','具材とワインで蒸し煮。','15分で完成。'] },
+    { id:'r338', name:'シーフードグラタン', emoji:'🧀', cat:'一品', time:35, serves:3, tags:['魚介','グラタン','洋'],
+      ingredients:[{name:'シーフードミックス',amount:'300g'},{name:'玉ねぎ',amount:'1/2個'},{name:'ホワイトソース',amount:'400g'},{name:'チーズ',amount:'80g'},{name:'バター',amount:'20g'}],
+      steps:['シーフードと玉ねぎを炒める。','ソースを加えて器へ。','チーズで焼く。'] },
+    { id:'r339', name:'牛すじ煮込みうどん', emoji:'🍜', cat:'一品', time:100, serves:3, tags:['うどん','牛すじ','煮込み'],
+      ingredients:[{name:'うどん',amount:'3玉'},{name:'牛すじ',amount:'300g'},{name:'味噌',amount:'大さじ3'},{name:'醤油',amount:'大さじ2'},{name:'だし',amount:'600ml'},{name:'ねぎ',amount:'適量'}],
+      steps:['牛すじを下茹で、1時間煮る。','うどんを加える。','ねぎを散らす。'] },
+    { id:'r340', name:'明太子うどん', emoji:'🍜', cat:'一品', time:10, serves:2, tags:['うどん','明太子','簡単'],
+      ingredients:[{name:'うどん',amount:'2玉'},{name:'明太子',amount:'1腹'},{name:'バター',amount:'15g'},{name:'醤油',amount:'小さじ1'},{name:'刻み海苔',amount:'適量'}],
+      steps:['うどんを茹でる。','明太子とバターと絡める。','海苔を散らす。'] },
+    { id:'r341', name:'ガーリックシュリンプ', emoji:'🍤', cat:'一品', time:15, serves:2, tags:['エビ','ハワイ','ガーリック'],
+      ingredients:[{name:'むきエビ',amount:'250g'},{name:'にんにく',amount:'4片'},{name:'バター',amount:'30g'},{name:'パプリカパウダー',amount:'小さじ1'},{name:'塩こしょう',amount:'少々'},{name:'レモン',amount:'1/2個'}],
+      steps:['エビに下味。','にんにくバターで炒める。','レモンを絞る。'] },
+    { id:'r342', name:'ジャンバラヤ', emoji:'🍛', cat:'一品', time:25, serves:3, tags:['米','南米','スパイス'],
+      ingredients:[{name:'米',amount:'2合'},{name:'ソーセージ',amount:'4本'},{name:'エビ',amount:'150g'},{name:'玉ねぎ',amount:'1/2個'},{name:'パプリカ',amount:'1個'},{name:'トマト缶',amount:'1/2缶'},{name:'ケイジャンスパイス',amount:'大さじ1'}],
+      steps:['具材を炒める。','米とスパイスを加える。','水分で炊く。'] },
+    { id:'r343', name:'チャプチェ', emoji:'🥢', cat:'一品', time:20, serves:3, tags:['韓国','春雨','炒め'],
+      ingredients:[{name:'春雨',amount:'100g'},{name:'牛肉',amount:'150g'},{name:'にんじん',amount:'1/2本'},{name:'ピーマン',amount:'2個'},{name:'醤油',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'ごま油',amount:'大さじ1'}],
+      steps:['春雨を戻す。','具材と一緒に炒める。','調味料で味付け。'] },
+    { id:'r344', name:'ビビン麺', emoji:'🌶', cat:'一品', time:15, serves:2, tags:['韓国','冷麺','ピリ辛'],
+      ingredients:[{name:'中華麺',amount:'2玉'},{name:'キムチ',amount:'100g'},{name:'きゅうり',amount:'1/2本'},{name:'ゆで卵',amount:'1個'},{name:'コチュジャン',amount:'大さじ2'},{name:'酢',amount:'大さじ1'},{name:'砂糖',amount:'小さじ2'}],
+      steps:['麺を茹でて冷水で締める。','たれを作る。','具を乗せて食べる。'] },
+    { id:'r345', name:'クスクス', emoji:'🍛', cat:'一品', time:25, serves:3, tags:['クスクス','中東','スパイス'],
+      ingredients:[{name:'クスクス',amount:'200g'},{name:'鶏もも肉',amount:'300g'},{name:'ズッキーニ',amount:'1本'},{name:'トマト',amount:'2個'},{name:'クミン',amount:'小さじ1'},{name:'コリアンダー',amount:'小さじ1'},{name:'オリーブオイル',amount:'大さじ2'}],
+      steps:['鶏と野菜を炒める。','スパイスで煮込む。','クスクスを戻して合わせる。'] },
+
+    // r346-r385 副菜 +40
+    { id:'r346', name:'ズッキーニグリル', emoji:'🥒', cat:'副菜', time:10, serves:2, tags:['ズッキーニ','グリル','シンプル'],
+      ingredients:[{name:'ズッキーニ',amount:'1本'},{name:'オリーブオイル',amount:'大さじ1'},{name:'塩こしょう',amount:'少々'},{name:'粉チーズ',amount:'大さじ1'}],
+      steps:['ズッキーニを輪切り。','グリルで両面焼く。','オイルとチーズで。'] },
+    { id:'r347', name:'パプリカマリネ', emoji:'🌶', cat:'副菜', time:15, serves:3, tags:['パプリカ','マリネ','彩り'],
+      ingredients:[{name:'パプリカ(赤黄)',amount:'各1個'},{name:'酢',amount:'大さじ2'},{name:'オリーブオイル',amount:'大さじ2'},{name:'砂糖',amount:'小さじ1'},{name:'塩',amount:'少々'}],
+      steps:['パプリカを焼いて皮を剥く。','マリネ液に漬ける。','30分冷やす。'] },
+    { id:'r348', name:'ラタトゥイユ', emoji:'🍆', cat:'副菜', time:30, serves:4, tags:['野菜','煮込み','南仏'],
+      ingredients:[{name:'茄子',amount:'1本'},{name:'ズッキーニ',amount:'1本'},{name:'パプリカ',amount:'1個'},{name:'玉ねぎ',amount:'1/2個'},{name:'トマト缶',amount:'1缶'},{name:'にんにく',amount:'2片'}],
+      steps:['野菜を角切り。','トマト缶で煮込む。','20分でとろり。'] },
+    { id:'r349', name:'なめたけ', emoji:'🍄', cat:'副菜', time:15, serves:4, tags:['えのき','ご飯のお供','簡単'],
+      ingredients:[{name:'えのき',amount:'2袋'},{name:'醤油',amount:'大さじ3'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'酢',amount:'小さじ1'}],
+      steps:['えのきを切る。','調味料で煮詰める。','冷めたら保存。'] },
+    { id:'r350', name:'ジャーマンポテト', emoji:'🥔', cat:'副菜', time:20, serves:3, tags:['じゃがいも','ベーコン','洋'],
+      ingredients:[{name:'じゃがいも',amount:'3個'},{name:'ベーコン',amount:'80g'},{name:'玉ねぎ',amount:'1/2個'},{name:'バター',amount:'15g'},{name:'塩こしょう',amount:'少々'},{name:'パセリ',amount:'適量'}],
+      steps:['じゃがいもを茹でる。','ベーコンと一緒に炒める。','塩こしょうで仕上げ。'] },
+    { id:'r351', name:'コロッケ', emoji:'🥔', cat:'副菜', time:40, serves:3, tags:['じゃがいも','揚げ','洋'],
+      ingredients:[{name:'じゃがいも',amount:'4個'},{name:'合いびき肉',amount:'100g'},{name:'玉ねぎ',amount:'1/4個'},{name:'小麦粉',amount:'適量'},{name:'卵',amount:'1個'},{name:'パン粉',amount:'適量'}],
+      steps:['じゃがいもと肉を混ぜる。','衣を付けて揚げる。','ソースで食べる。'] },
+    { id:'r352', name:'春巻き', emoji:'🥟', cat:'副菜', time:30, serves:4, tags:['中華','揚げ','パリパリ'],
+      ingredients:[{name:'春巻きの皮',amount:'10枚'},{name:'豚ひき肉',amount:'150g'},{name:'たけのこ',amount:'50g'},{name:'しいたけ',amount:'3個'},{name:'春雨',amount:'30g'},{name:'醤油',amount:'大さじ1'}],
+      steps:['具材を炒める。','皮で巻く。','揚げる。'] },
+    { id:'r353', name:'生春巻き', emoji:'🌯', cat:'副菜', time:20, serves:3, tags:['ベトナム','さっぱり','ヘルシー'],
+      ingredients:[{name:'ライスペーパー',amount:'8枚'},{name:'エビ',amount:'16尾'},{name:'レタス',amount:'4枚'},{name:'きゅうり',amount:'1本'},{name:'スイートチリ',amount:'適量'}],
+      steps:['エビを茹でる。','ライスペーパーに具を巻く。','スイートチリで。'] },
+    { id:'r354', name:'スイートポテト', emoji:'🍠', cat:'副菜', time:40, serves:4, tags:['さつまいも','おやつ','甘い'],
+      ingredients:[{name:'さつまいも',amount:'2本'},{name:'バター',amount:'30g'},{name:'砂糖',amount:'大さじ3'},{name:'生クリーム',amount:'50ml'},{name:'卵黄',amount:'1個'}],
+      steps:['さつまいもを茹でて潰す。','材料を混ぜて成形。','オーブン180度で15分。'] },
+    { id:'r355', name:'かぼちゃコロッケ', emoji:'🎃', cat:'副菜', time:35, serves:3, tags:['かぼちゃ','揚げ','甘い'],
+      ingredients:[{name:'かぼちゃ',amount:'1/4個'},{name:'玉ねぎ',amount:'1/4個'},{name:'小麦粉',amount:'適量'},{name:'卵',amount:'1個'},{name:'パン粉',amount:'適量'}],
+      steps:['かぼちゃを茹でて潰す。','衣を付けて揚げる。','甘いコロッケ。'] },
+    { id:'r356', name:'ピクルス', emoji:'🥒', cat:'副菜', time:15, serves:6, tags:['野菜','酢','作り置き'],
+      ingredients:[{name:'きゅうり',amount:'2本'},{name:'にんじん',amount:'1本'},{name:'パプリカ',amount:'1個'},{name:'酢',amount:'200ml'},{name:'砂糖',amount:'大さじ4'},{name:'塩',amount:'小さじ2'}],
+      steps:['野菜をスティック。','ピクルス液を煮立てる。','熱いうちに漬ける。'] },
+    { id:'r357', name:'焼きしいたけ', emoji:'🍄', cat:'副菜', time:10, serves:2, tags:['しいたけ','焼き','シンプル'],
+      ingredients:[{name:'しいたけ',amount:'6個'},{name:'醤油',amount:'小さじ2'},{name:'すだち',amount:'1個'}],
+      steps:['しいたけのかさを上にして焼く。','醤油を垂らす。','すだちを絞る。'] },
+    { id:'r358', name:'マッシュポテト', emoji:'🥔', cat:'副菜', time:20, serves:3, tags:['じゃがいも','洋','付け合せ'],
+      ingredients:[{name:'じゃがいも',amount:'3個'},{name:'牛乳',amount:'100ml'},{name:'バター',amount:'20g'},{name:'塩こしょう',amount:'少々'}],
+      steps:['じゃがいもを茹でて潰す。','牛乳とバターを加えて混ぜる。','塩こしょうで調える。'] },
+    { id:'r359', name:'にら玉', emoji:'🥚', cat:'副菜', time:8, serves:2, tags:['にら','卵','中華'],
+      ingredients:[{name:'にら',amount:'1束'},{name:'卵',amount:'3個'},{name:'鶏ガラ',amount:'小さじ1'},{name:'塩こしょう',amount:'少々'},{name:'ごま油',amount:'大さじ1'}],
+      steps:['にらを切る。','卵と炒める。','鶏ガラで味付け。'] },
+    { id:'r360', name:'ししとう焼き浸し', emoji:'🌶', cat:'副菜', time:12, serves:2, tags:['ししとう','浸し','和'],
+      ingredients:[{name:'ししとう',amount:'1パック'},{name:'めんつゆ',amount:'100ml'},{name:'水',amount:'100ml'},{name:'かつお節',amount:'適量'}],
+      steps:['ししとうを焼く。','つゆに浸す。','かつお節をかける。'] },
+    { id:'r361', name:'モロヘイヤおひたし', emoji:'🥬', cat:'副菜', time:10, serves:2, tags:['モロヘイヤ','浸し','ネバネバ'],
+      ingredients:[{name:'モロヘイヤ',amount:'1束'},{name:'めんつゆ',amount:'大さじ2'},{name:'かつお節',amount:'適量'}],
+      steps:['モロヘイヤを茹でて刻む。','つゆで和える。','かつお節を添える。'] },
+    { id:'r362', name:'オクラおひたし', emoji:'🥬', cat:'副菜', time:8, serves:2, tags:['オクラ','浸し','ヘルシー'],
+      ingredients:[{name:'オクラ',amount:'10本'},{name:'めんつゆ',amount:'大さじ2'},{name:'かつお節',amount:'適量'}],
+      steps:['オクラを茹でる。','輪切りにしてつゆで和える。','かつお節を添える。'] },
+    { id:'r363', name:'白菜の浅漬け', emoji:'🥬', cat:'副菜', time:10, serves:3, tags:['白菜','漬物','あっさり'],
+      ingredients:[{name:'白菜',amount:'1/6個'},{name:'塩',amount:'小さじ1'},{name:'昆布',amount:'5cm'},{name:'唐辛子',amount:'少々'}],
+      steps:['白菜を一口大。','塩と昆布で揉む。','冷蔵庫で30分。'] },
+    { id:'r364', name:'きゅうりの浅漬け', emoji:'🥒', cat:'副菜', time:10, serves:3, tags:['きゅうり','漬物','夏'],
+      ingredients:[{name:'きゅうり',amount:'2本'},{name:'塩',amount:'小さじ1/2'},{name:'昆布',amount:'5cm'},{name:'生姜',amount:'少々'}],
+      steps:['きゅうりを斜め切り。','塩と昆布で揉む。','30分漬ける。'] },
+    { id:'r365', name:'大根サラダ', emoji:'🥗', cat:'副菜', time:10, serves:3, tags:['大根','サラダ','さっぱり'],
+      ingredients:[{name:'大根',amount:'1/4本'},{name:'きゅうり',amount:'1/2本'},{name:'ツナ缶',amount:'1缶'},{name:'マヨネーズ',amount:'大さじ3'},{name:'醤油',amount:'小さじ1'}],
+      steps:['大根を千切り。','ツナとマヨで和える。','醤油で調味。'] },
+    { id:'r366', name:'切り干し大根', emoji:'🍱', cat:'副菜', time:25, serves:4, tags:['切り干し','煮物','作り置き'],
+      ingredients:[{name:'切り干し大根',amount:'40g'},{name:'にんじん',amount:'1/3本'},{name:'油揚げ',amount:'1枚'},{name:'醤油',amount:'大さじ2'},{name:'みりん',amount:'大さじ2'},{name:'だし',amount:'200ml'}],
+      steps:['切り干しを戻す。','具材と煮る。','汁気を飛ばす。'] },
+    { id:'r367', name:'五目豆', emoji:'🫘', cat:'副菜', time:40, serves:4, tags:['豆','煮物','健康'],
+      ingredients:[{name:'大豆水煮',amount:'200g'},{name:'にんじん',amount:'1/3本'},{name:'ごぼう',amount:'1/3本'},{name:'昆布',amount:'10cm'},{name:'醤油',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'}],
+      steps:['具材を角切り。','だしで煮る。','20分で味を染ませる。'] },
+    { id:'r368', name:'鯖の竜田揚げ', emoji:'🐟', cat:'副菜', time:20, serves:2, tags:['サバ','揚げ','和'],
+      ingredients:[{name:'サバ',amount:'2切'},{name:'醤油',amount:'大さじ1'},{name:'生姜',amount:'1片'},{name:'酒',amount:'大さじ1'},{name:'片栗粉',amount:'大さじ3'}],
+      steps:['サバに下味。','片栗粉をまぶす。','170度で揚げる。'] },
+    { id:'r369', name:'長芋の梅和え', emoji:'🥢', cat:'副菜', time:8, serves:2, tags:['長芋','梅','シャキシャキ'],
+      ingredients:[{name:'長芋',amount:'150g'},{name:'梅干し',amount:'2個'},{name:'醤油',amount:'小さじ1'},{name:'かつお節',amount:'適量'}],
+      steps:['長芋を拍子木切り。','梅を叩いて和える。','かつお節を乗せる。'] },
+    { id:'r370', name:'ほうれん草のごま和え', emoji:'🥬', cat:'副菜', time:12, serves:3, tags:['ほうれん草','ごま','和'],
+      ingredients:[{name:'ほうれん草',amount:'1束'},{name:'すりごま',amount:'大さじ3'},{name:'砂糖',amount:'大さじ1'},{name:'醤油',amount:'大さじ1'}],
+      steps:['ほうれん草を茹でる。','ごまだれで和える。','冷やして完成。'] },
+    { id:'r371', name:'春菊のおひたし', emoji:'🥬', cat:'副菜', time:10, serves:2, tags:['春菊','浸し','冬'],
+      ingredients:[{name:'春菊',amount:'1束'},{name:'めんつゆ',amount:'大さじ2'},{name:'ごま',amount:'適量'}],
+      steps:['春菊を茹でる。','つゆで和える。','ごまを散らす。'] },
+    { id:'r372', name:'アスパラベーコン', emoji:'🥓', cat:'副菜', time:10, serves:2, tags:['アスパラ','ベーコン','洋'],
+      ingredients:[{name:'アスパラ',amount:'8本'},{name:'ベーコン',amount:'4枚'},{name:'オリーブオイル',amount:'大さじ1'},{name:'塩こしょう',amount:'少々'}],
+      steps:['アスパラにベーコンを巻く。','フライパンで焼く。','塩こしょうで。'] },
+    { id:'r373', name:'ブロッコリーのナムル', emoji:'🥦', cat:'副菜', time:10, serves:3, tags:['ブロッコリー','韓国','ごま油'],
+      ingredients:[{name:'ブロッコリー',amount:'1/2株'},{name:'ごま油',amount:'大さじ1'},{name:'塩',amount:'少々'},{name:'にんにく',amount:'1/2片'},{name:'ごま',amount:'適量'}],
+      steps:['ブロッコリーを茹でる。','ごま油と塩で和える。','ごまを散らす。'] },
+    { id:'r374', name:'にんじんしりしり', emoji:'🥕', cat:'副菜', time:15, serves:3, tags:['にんじん','沖縄','卵'],
+      ingredients:[{name:'にんじん',amount:'2本'},{name:'卵',amount:'2個'},{name:'ツナ缶',amount:'1缶'},{name:'醤油',amount:'大さじ1'},{name:'だし',amount:'小さじ1'}],
+      steps:['にんじんを千切り。','ツナと炒める。','卵でとじて醤油。'] },
+    { id:'r375', name:'茄子の南蛮漬け', emoji:'🍆', cat:'副菜', time:25, serves:3, tags:['茄子','南蛮','漬け'],
+      ingredients:[{name:'茄子',amount:'3本'},{name:'酢',amount:'大さじ3'},{name:'醤油',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'唐辛子',amount:'1本'},{name:'生姜',amount:'1片'}],
+      steps:['茄子を素揚げ。','南蛮だれに漬ける。','冷やして味を染ませる。'] },
+    { id:'r376', name:'豆苗ナムル', emoji:'🥬', cat:'副菜', time:8, serves:2, tags:['豆苗','韓国','簡単'],
+      ingredients:[{name:'豆苗',amount:'1パック'},{name:'ごま油',amount:'大さじ1'},{name:'鶏ガラ',amount:'小さじ1'},{name:'塩',amount:'少々'},{name:'ごま',amount:'適量'}],
+      steps:['豆苗を茹でる。','調味料で和える。','ごまを散らす。'] },
+    { id:'r377', name:'れんこんの甘辛炒め', emoji:'🥢', cat:'副菜', time:15, serves:3, tags:['れんこん','甘辛','おかず'],
+      ingredients:[{name:'れんこん',amount:'200g'},{name:'醤油',amount:'大さじ2'},{name:'みりん',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'ごま',amount:'適量'}],
+      steps:['れんこんを薄切り。','フライパンで炒める。','調味料で絡める。'] },
+    { id:'r378', name:'小松菜の煮浸し', emoji:'🥬', cat:'副菜', time:10, serves:3, tags:['小松菜','浸し','和'],
+      ingredients:[{name:'小松菜',amount:'1束'},{name:'油揚げ',amount:'1枚'},{name:'だし',amount:'300ml'},{name:'醤油',amount:'大さじ1'},{name:'みりん',amount:'大さじ1'}],
+      steps:['油揚げと小松菜をだしで煮る。','調味料で味を整える。','汁ごと盛る。'] },
+    { id:'r379', name:'ほうれん草とツナのサラダ', emoji:'🥗', cat:'副菜', time:10, serves:2, tags:['ほうれん草','ツナ','サラダ'],
+      ingredients:[{name:'ほうれん草',amount:'1/2束'},{name:'ツナ缶',amount:'1缶'},{name:'マヨネーズ',amount:'大さじ2'},{name:'醤油',amount:'小さじ1'}],
+      steps:['ほうれん草を茹でる。','ツナとマヨで和える。','醤油で調える。'] },
+    { id:'r380', name:'きのこマリネ', emoji:'🍄', cat:'副菜', time:15, serves:3, tags:['きのこ','マリネ','洋'],
+      ingredients:[{name:'しめじ',amount:'1パック'},{name:'エリンギ',amount:'1パック'},{name:'オリーブオイル',amount:'大さじ3'},{name:'酢',amount:'大さじ1'},{name:'にんにく',amount:'1片'},{name:'ハーブ',amount:'適量'}],
+      steps:['きのこを焼く。','マリネ液に漬ける。','冷やして完成。'] },
+    { id:'r381', name:'トマトとモッツァレラ', emoji:'🍅', cat:'副菜', time:5, serves:2, tags:['トマト','チーズ','カプレーゼ'],
+      ingredients:[{name:'トマト',amount:'2個'},{name:'モッツァレラ',amount:'100g'},{name:'バジル',amount:'適量'},{name:'オリーブオイル',amount:'大さじ2'},{name:'塩',amount:'少々'}],
+      steps:['トマトとチーズを交互に。','バジルを散らす。','オイルと塩。'] },
+    { id:'r382', name:'コールスロー', emoji:'🥗', cat:'副菜', time:10, serves:3, tags:['キャベツ','サラダ','洋'],
+      ingredients:[{name:'キャベツ',amount:'1/4個'},{name:'にんじん',amount:'1/3本'},{name:'マヨネーズ',amount:'大さじ3'},{name:'酢',amount:'大さじ1'},{name:'砂糖',amount:'小さじ1'}],
+      steps:['野菜を千切り。','塩もみして絞る。','調味料で和える。'] },
+    { id:'r383', name:'キャロットラペ', emoji:'🥕', cat:'副菜', time:10, serves:3, tags:['にんじん','サラダ','洋'],
+      ingredients:[{name:'にんじん',amount:'2本'},{name:'レーズン',amount:'大さじ2'},{name:'オリーブオイル',amount:'大さじ2'},{name:'酢',amount:'大さじ1'},{name:'塩こしょう',amount:'少々'}],
+      steps:['にんじんを千切り。','塩で馴染ませる。','調味料で和える。'] },
+    { id:'r384', name:'きゅうりのごま酢和え', emoji:'🥒', cat:'副菜', time:8, serves:2, tags:['きゅうり','ごま','酢'],
+      ingredients:[{name:'きゅうり',amount:'2本'},{name:'酢',amount:'大さじ2'},{name:'砂糖',amount:'大さじ1'},{name:'醤油',amount:'小さじ1'},{name:'すりごま',amount:'大さじ2'}],
+      steps:['きゅうりを輪切り。','塩もみして絞る。','調味料で和える。'] },
+    { id:'r385', name:'ゆでブロッコリー', emoji:'🥦', cat:'副菜', time:7, serves:2, tags:['ブロッコリー','シンプル','付け合せ'],
+      ingredients:[{name:'ブロッコリー',amount:'1/2株'},{name:'塩',amount:'少々'},{name:'マヨネーズ',amount:'適量'}],
+      steps:['ブロッコリーを茹でる。','冷水で締める。','マヨを添える。'] },
+
+    // r386-r400 汁物 +15
+    { id:'r386', name:'オニオンスープ', emoji:'🧅', cat:'汁物', time:40, serves:3, tags:['玉ねぎ','洋','濃厚'],
+      ingredients:[{name:'玉ねぎ',amount:'2個'},{name:'バター',amount:'20g'},{name:'コンソメ',amount:'2個'},{name:'水',amount:'600ml'},{name:'チーズ',amount:'適量'},{name:'バゲット',amount:'2切'}],
+      steps:['玉ねぎを飴色に炒める。','コンソメで煮る。','チーズトーストを浮かべる。'] },
+    { id:'r387', name:'さつまいもの味噌汁', emoji:'🍠', cat:'汁物', time:20, serves:3, tags:['さつまいも','味噌','甘い'],
+      ingredients:[{name:'さつまいも',amount:'200g'},{name:'油揚げ',amount:'1枚'},{name:'だし',amount:'500ml'},{name:'味噌',amount:'大さじ2'},{name:'ねぎ',amount:'適量'}],
+      steps:['さつまいもを輪切り。','だしで柔らかく煮る。','油揚げと味噌を加える。'] },
+    { id:'r388', name:'水餃子スープ', emoji:'🥟', cat:'汁物', time:12, serves:2, tags:['餃子','中華','スープ'],
+      ingredients:[{name:'冷凍水餃子',amount:'12個'},{name:'鶏ガラ',amount:'大さじ1'},{name:'水',amount:'600ml'},{name:'チンゲン菜',amount:'1株'},{name:'ごま油',amount:'小さじ1'}],
+      steps:['スープを沸かす。','餃子を入れる。','野菜と油を加える。'] },
+    { id:'r389', name:'ワンタンスープ', emoji:'🥟', cat:'汁物', time:15, serves:2, tags:['ワンタン','中華','スープ'],
+      ingredients:[{name:'ワンタン',amount:'12個'},{name:'鶏ガラ',amount:'大さじ1'},{name:'水',amount:'600ml'},{name:'ねぎ',amount:'適量'},{name:'ごま油',amount:'小さじ1'}],
+      steps:['スープを沸かす。','ワンタンを入れる。','ねぎを散らす。'] },
+    { id:'r390', name:'春雨スープ', emoji:'🍜', cat:'汁物', time:12, serves:2, tags:['春雨','中華','ヘルシー'],
+      ingredients:[{name:'春雨',amount:'50g'},{name:'鶏ガラ',amount:'大さじ1'},{name:'水',amount:'500ml'},{name:'しいたけ',amount:'2個'},{name:'もやし',amount:'1/2袋'},{name:'醤油',amount:'小さじ1'}],
+      steps:['春雨を戻す。','スープと具を煮る。','醤油で整える。'] },
+    { id:'r391', name:'コーンポタージュ', emoji:'🌽', cat:'汁物', time:20, serves:3, tags:['コーン','洋','濃厚'],
+      ingredients:[{name:'コーン缶',amount:'1缶'},{name:'玉ねぎ',amount:'1/2個'},{name:'バター',amount:'15g'},{name:'牛乳',amount:'400ml'},{name:'コンソメ',amount:'1個'},{name:'塩こしょう',amount:'少々'}],
+      steps:['玉ねぎを炒める。','コーンと牛乳で煮る。','ミキサーで滑らかに。'] },
+    { id:'r392', name:'ビシソワーズ', emoji:'🥔', cat:'汁物', time:30, serves:3, tags:['冷製','じゃがいも','洋'],
+      ingredients:[{name:'じゃがいも',amount:'3個'},{name:'玉ねぎ',amount:'1/2個'},{name:'バター',amount:'15g'},{name:'牛乳',amount:'300ml'},{name:'生クリーム',amount:'100ml'},{name:'コンソメ',amount:'1個'}],
+      steps:['じゃがいもを煮る。','ミキサーで滑らかに。','冷やして生クリーム。'] },
+    { id:'r393', name:'わかめスープ', emoji:'🥬', cat:'汁物', time:8, serves:2, tags:['わかめ','韓国風','簡単'],
+      ingredients:[{name:'わかめ',amount:'20g'},{name:'牛肉',amount:'50g'},{name:'鶏ガラ',amount:'大さじ1'},{name:'水',amount:'500ml'},{name:'ごま油',amount:'小さじ1'},{name:'にんにく',amount:'1/2片'}],
+      steps:['牛肉を炒める。','スープとわかめを加える。','味を整える。'] },
+    { id:'r394', name:'豆乳スープ和風', emoji:'🥣', cat:'汁物', time:15, serves:2, tags:['豆乳','和風','まろやか'],
+      ingredients:[{name:'豆乳',amount:'300ml'},{name:'だし',amount:'200ml'},{name:'白菜',amount:'2枚'},{name:'しめじ',amount:'1/2袋'},{name:'味噌',amount:'大さじ1'},{name:'油揚げ',amount:'1枚'}],
+      steps:['だしで野菜を煮る。','豆乳を加えて温める。','味噌を溶く。'] },
+    { id:'r395', name:'もずくスープ', emoji:'🥣', cat:'汁物', time:8, serves:2, tags:['もずく','海藻','沖縄'],
+      ingredients:[{name:'もずく',amount:'100g'},{name:'鶏ガラ',amount:'小さじ2'},{name:'水',amount:'500ml'},{name:'ねぎ',amount:'適量'},{name:'生姜',amount:'1片'}],
+      steps:['スープを沸かす。','もずくを加える。','ねぎと生姜で。'] },
+    { id:'r396', name:'根菜たっぷり豚汁', emoji:'🥣', cat:'汁物', time:35, serves:4, tags:['豚汁','根菜','冬'],
+      ingredients:[{name:'豚バラ',amount:'150g'},{name:'大根',amount:'1/4本'},{name:'にんじん',amount:'1本'},{name:'ごぼう',amount:'1/2本'},{name:'里芋',amount:'4個'},{name:'味噌',amount:'大さじ4'},{name:'だし',amount:'800ml'}],
+      steps:['根菜を乱切り。','豚肉と一緒に煮る。','味噌を溶く。'] },
+    { id:'r397', name:'酸辣湯', emoji:'🌶', cat:'汁物', time:20, serves:3, tags:['中華','酸っぱい','辛い'],
+      ingredients:[{name:'豚肉',amount:'100g'},{name:'しいたけ',amount:'3個'},{name:'たけのこ',amount:'50g'},{name:'卵',amount:'1個'},{name:'酢',amount:'大さじ2'},{name:'ラー油',amount:'小さじ1'},{name:'鶏ガラ',amount:'大さじ1'}],
+      steps:['具材を煮る。','酢とラー油で味付け。','卵を回し入れる。'] },
+    { id:'r398', name:'ミネストローネ', emoji:'🍅', cat:'汁物', time:25, serves:3, tags:['トマト','野菜','洋'],
+      ingredients:[{name:'玉ねぎ',amount:'1/2個'},{name:'にんじん',amount:'1/2本'},{name:'セロリ',amount:'1/2本'},{name:'キャベツ',amount:'2枚'},{name:'トマト缶',amount:'1/2缶'},{name:'コンソメ',amount:'1個'},{name:'ベーコン',amount:'50g'}],
+      steps:['野菜を角切り。','ベーコンと一緒に煮る。','塩で整える。'] },
+    { id:'r399', name:'長ねぎと卵の中華スープ', emoji:'🥣', cat:'汁物', time:8, serves:2, tags:['ねぎ','卵','中華'],
+      ingredients:[{name:'長ねぎ',amount:'1本'},{name:'卵',amount:'1個'},{name:'鶏ガラ',amount:'大さじ1'},{name:'水',amount:'500ml'},{name:'ごま油',amount:'小さじ1'}],
+      steps:['スープを沸かす。','ねぎを加える。','卵を回し入れる。'] },
+    { id:'r400', name:'白味噌のお雑煮', emoji:'🍲', cat:'汁物', time:25, serves:3, tags:['雑煮','正月','白味噌'],
+      ingredients:[{name:'餅',amount:'3個'},{name:'大根',amount:'1/4本'},{name:'にんじん',amount:'1/3本'},{name:'里芋',amount:'3個'},{name:'白味噌',amount:'大さじ4'},{name:'だし',amount:'600ml'}],
+      steps:['野菜を下茹で。','だしで煮て味噌を溶く。','焼いた餅を加える。'] },
 ];
 
 // ══════════════════════════════════════════════════════════════════
@@ -1696,14 +2976,260 @@ const IMG_QUERY = {
     r58: 'japanese pickled cucumber', r59: 'komatsuna namul', r60: 'caprese salad',
     r61: 'yellowtail teriyaki', r62: 'pork cabbage miso', r63: 'yakiudon',
     r64: 'gyoza', r65: 'chicken piccata',
+    // r66-r90 主食
+    r66: 'kitsune udon', r67: 'niku udon beef', r68: 'zaru soba', r69: 'tempura soba',
+    r70: 'carbonara pasta', r71: 'napolitan spaghetti', r72: 'peperoncino', r73: 'meat sauce spaghetti',
+    r74: 'yakisoba', r75: 'hiyashi chuka cold noodles', r76: 'shoyu ramen', r77: 'miso ramen',
+    r78: 'chicken zosui rice porridge', r79: 'okayu rice porridge', r80: 'ochazuke',
+    r81: 'takikomi gohan chicken', r82: 'takenoko gohan bamboo', r83: 'kuri gohan chestnut rice',
+    r84: 'somen noodles', r85: 'omusoba', r86: 'taco rice', r87: 'keema curry',
+    r88: 'cheese risotto', r89: 'paella', r90: 'ankake yakisoba',
+    // r91-r120 主菜
+    r91: 'buri daikon yellowtail', r92: 'saba shio grilled mackerel', r93: 'iwashi kabayaki sardine',
+    r94: 'salmon chanchanyaki', r95: 'tai meuniere red snapper', r96: 'kakuni pork belly braised',
+    r97: 'butakimchi pork kimchi', r98: 'pork saute', r99: 'subuta sweet sour pork',
+    r100: 'roast beef', r101: 'beef steak', r102: 'gyuniku shigureni',
+    r103: 'roll cabbage', r104: 'meatballs tomato stew', r105: 'menchi katsu',
+    r106: 'ebi fry', r107: 'oyster fry kaki', r108: 'herb chicken', r109: 'chicken tomato stew',
+    r110: 'chicken teba moto simmered', r111: 'saba tatsuta age', r112: 'tofu hamburger',
+    r113: 'pork atsuage simmered', r114: 'cod hoil yaki', r115: 'tai meshi',
+    r116: 'tsukune chicken', r117: 'hotate butter scallop', r118: 'pork shoga ni',
+    r119: 'beef burdock simmered', r120: 'sasami ume chicken',
+    // r121-r128 丼もの
+    r121: 'katsudon', r122: 'tendon tempura bowl', r123: 'kaisen don seafood',
+    r124: 'negitoro don tuna', r125: 'butadon pork bowl', r126: 'sanshoku soboro bowl',
+    r127: 'chuka don chinese', r128: 'maguro zuke tuna marinated',
+    // r129-r138 一品
+    r129: 'sukiyaki', r130: 'shabu shabu', r131: 'yosenabe hot pot',
+    r132: 'curry udon', r133: 'nabeyaki udon', r134: 'motsu nikomi pork offal',
+    r135: 'pizza toast', r136: 'sandwich', r137: 'hot sandwich grilled cheese',
+    r138: 'cold pasta tomato',
+    // r139-r158 副菜
+    r139: 'macaroni salad', r140: 'harusame salad chinese', r141: 'coleslaw',
+    r142: 'nasu nibitashi eggplant', r143: 'asparagus bacon wrap', r144: 'okra ohitashi',
+    r145: 'cucumber wakame sunomono', r146: 'lotus root kinpira', r147: 'satoimo taro simmered',
+    r148: 'daigaku imo candied sweet potato', r149: 'moyashi namul bean sprout',
+    r150: 'stuffed pepper', r151: 'yasai itame stir fry', r152: 'spinach goma ae',
+    r153: 'carotte rape', r154: 'mushroom butter saute', r155: 'broccoli boiled',
+    r156: 'cherry tomato marinade', r157: 'kabu asazuke turnip pickle', r158: 'edamame',
+    // r159-r165 汁物
+    r159: 'nameko miso soup', r160: 'shijimi clam miso soup', r161: 'asari clam miso soup',
+    r162: 'minestrone', r163: 'clam chowder', r164: 'potato potage', r165: 'pumpkin potage',
+    // r166-r180 主食
+    r166: 'oyako udon chicken egg', r167: 'mushroom rice', r168: 'curry fried rice',
+    r169: 'seafood curry', r170: 'hayashi rice', r171: 'doria rice gratin',
+    r172: 'macaroni gratin', r173: 'garlic rice', r174: 'nori maki sushi',
+    r175: 'inari sushi', r176: 'temaki sushi hand roll', r177: 'salmon ochazuke',
+    r178: 'gapao rice thai basil chicken', r179: 'lasagna', r180: 'vongole bianco clam pasta',
+    // r181-r210 主菜
+    r181: 'hoikoro twice cooked pork', r182: 'chinjao rosu beef peppers', r183: 'ebi chili shrimp',
+    r184: 'ebi mayo shrimp', r185: 'nanban zuke aji', r186: 'aji fry horse mackerel',
+    r187: 'kisu tempura', r188: 'hokke grilled atka mackerel', r189: 'karei nitsuke flounder',
+    r190: 'tara saikyo yaki', r191: 'salmon saikyo yaki', r192: 'cabbage hikiniku',
+    r193: 'cheese in hamburger', r194: 'pork bacon wrap', r195: 'chicken shio yaki',
+    r196: 'karaage negi sauce', r197: 'chicken egg teriyaki', r198: 'pork lotus root',
+    r199: 'pork vegetable butter shoyu', r200: 'samgyeopsal pork belly', r201: 'tandoori chicken',
+    r202: 'loco moco hawaiian', r203: 'cheese omelet', r204: 'chicken katsu breast',
+    r205: 'tofu steak', r206: 'atsuage miku miso', r207: 'chikuwa isobe age',
+    r208: 'katsuo tataki', r209: 'salmon marinated', r210: 'swordfish teriyaki kajiki',
+    // r211-r215 丼もの
+    r211: 'tanindon beef egg bowl', r212: 'chicken katsu don', r213: 'saba tatsuta don',
+    r214: 'kitsune don', r215: 'unagi don eel',
+    // r216-r225 一品
+    r216: 'kimchi pork nabe', r217: 'chicken dumpling nabe', r218: 'kimchi jjigae',
+    r219: 'yudofu hot tofu', r220: 'mizutaki chicken hot pot', r221: 'ishikari nabe salmon',
+    r222: 'chanko nabe sumo', r223: 'pot au feu', r224: 'bouillabaisse',
+    r225: 'bibimbap stone bowl',
+    // r226-r255 副菜
+    r226: 'pumpkin salad', r227: 'mushroom marinade', r228: 'tuna salad',
+    r229: 'burdock salad', r230: 'daikon salad', r231: 'prosciutto salad',
+    r232: 'avocado tomato caprese', r233: 'salmon avocado', r234: 'chikuwa cucumber',
+    r235: 'edamame peperoncino', r236: 'nasu age bitashi', r237: 'piman chirimen',
+    r238: 'okra pork wrap', r239: 'celery kinpira', r240: 'hakusai asazuke',
+    r241: 'cabbage shio konbu', r242: 'namul three', r243: 'ninjin shirishiri',
+    r244: 'grilled corn butter', r245: 'yaki nasu', r246: 'katsuo ume',
+    r247: 'squid taro simmered', r248: 'hijiki bean salad', r249: 'tomyou egg stir fry',
+    r250: 'cauliflower curry', r251: 'nanohana ohitashi', r252: 'snap pea stir fry',
+    r253: 'nira tama', r254: 'mushroom tofu stir fry', r255: 'yamaimo tanzaku',
+    // r256-r265 汁物
+    r256: 'hamaguri clear soup', r257: 'matsutake soup', r258: 'kakitamago tomato soup',
+    r259: 'gazpacho', r260: 'kimchi soup', r261: 'sundubu jjigae',
+    r262: 'tantan sesame miso soup', r263: 'hakusai aburaage miso', r264: 'pumpkin satsumaimo miso',
+    r265: 'mushroom soymilk soup',
+    // r266-r283 主食
+    r266: 'kitsune soba', r267: 'sansai udon', r268: 'salad udon',
+    r269: 'kamatama udon', r270: 'bukkake udon', r271: 'taiwan mazesoba',
+    r272: 'chinese congee rice', r273: 'mame gohan green peas rice', r274: 'shirasu rice bowl',
+    r275: 'umeboshi katsuobushi rice', r276: 'seafood tomato pasta', r277: 'mentaiko pasta',
+    r278: 'mushroom japanese pasta', r279: 'spinach bacon pasta', r280: 'bolognese pasta',
+    r281: 'arrabbiata pasta', r282: 'salmon fried rice', r283: 'shrimp fried rice',
+    // r284-r328 主菜
+    r284: 'chicken nanban zuke', r285: 'chicken daikon simmered', r286: 'chicken miso yaki',
+    r287: 'bang bang chicken', r288: 'yodare chicken mouthwatering', r289: 'yangnyeom korean chicken',
+    r290: 'tandoori chicken', r291: 'goya champuru', r292: 'bulgogi beef',
+    r293: 'soup curry hokkaido', r294: 'black cod simmered', r295: 'saba can keema curry',
+    r296: 'beef tendon simmered', r297: 'roast pork shoulder', r298: 'pork tenderloin sauté',
+    r299: 'pork belly kakuni', r300: 'roast chicken whole', r301: 'salmon meuniere butter',
+    r302: 'mackerel herb grill', r303: 'sardines ume ni', r304: 'aji salt grilled',
+    r305: 'karei flounder simmered', r306: 'cod chiri nabe', r307: 'shrimp chili ebi chili',
+    r308: 'shrimp mayo ebi mayo', r309: 'squid taro simmered', r310: 'scallops butter soy',
+    r311: 'white fish fry', r312: 'chicken nanban tartar', r313: 'chicken katsu',
+    r314: 'hamburger steak oroshi', r315: 'demi stewed hamburger', r316: 'menchi katsu',
+    r317: 'cabbage rolls', r318: 'loco moco hawaii', r319: 'beef stew demi',
+    r320: 'beef tenderloin steak', r321: 'pork shabu salad', r322: 'buri shabu yellowtail',
+    r323: 'mapo eggplant', r324: 'pork kimchi stir fry', r325: 'kung pao chicken',
+    r326: 'pork hakusai mille feuille nabe', r327: 'iwashi tsumire jiru', r328: 'pork cutlet milanese',
+    // r329-r333 丼もの
+    r329: 'shirasu donburi', r330: 'tuna mayo bowl', r331: 'yakiniku bowl',
+    r332: 'yakitori don', r333: 'roast beef bowl',
+    // r334-r345 一品
+    r334: 'chicken meatball soup', r335: 'tomato nabe hotpot', r336: 'cheese fondue',
+    r337: 'acqua pazza', r338: 'seafood gratin', r339: 'beef tendon udon',
+    r340: 'mentaiko udon', r341: 'garlic shrimp hawaii', r342: 'jambalaya',
+    r343: 'japchae korean', r344: 'bibim naengmyeon spicy', r345: 'couscous chicken',
+    // r346-r385 副菜
+    r346: 'zucchini grilled', r347: 'bell pepper marinade', r348: 'ratatouille',
+    r349: 'nametake enoki', r350: 'german potato', r351: 'korokke croquette',
+    r352: 'harumaki spring roll', r353: 'vietnamese spring roll', r354: 'sweet potato',
+    r355: 'pumpkin croquette', r356: 'pickles vegetables', r357: 'grilled shiitake',
+    r358: 'mashed potato', r359: 'nira tama stir fry', r360: 'shishito yakibitashi',
+    r361: 'moroheiya ohitashi', r362: 'okra ohitashi', r363: 'hakusai asazuke',
+    r364: 'cucumber asazuke', r365: 'daikon tuna salad', r366: 'kiriboshi daikon',
+    r367: 'gomoku mame soybean', r368: 'saba tatsuta age', r369: 'nagaimo ume',
+    r370: 'spinach gomaae sesame', r371: 'shungiku ohitashi', r372: 'asparagus bacon',
+    r373: 'broccoli namul', r374: 'carrot shirishiri okinawa', r375: 'eggplant nanban',
+    r376: 'toumyou namul', r377: 'renkon lotus root sweet', r378: 'komatsuna nibitashi',
+    r379: 'spinach tuna salad', r380: 'mushroom marinade', r381: 'caprese tomato mozzarella',
+    r382: 'coleslaw', r383: 'carrot rapee', r384: 'cucumber sesame vinegar',
+    r385: 'boiled broccoli',
+    // r386-r400 汁物
+    r386: 'onion soup french', r387: 'satsumaimo miso soup', r388: 'dumpling soup',
+    r389: 'wonton soup', r390: 'harusame glass noodle soup', r391: 'corn potage',
+    r392: 'vichyssoise potato cold', r393: 'wakame soup korean', r394: 'soy milk miso soup',
+    r395: 'mozuku seaweed soup', r396: 'root vegetable tonjiru', r397: 'hot sour soup suanlatang',
+    r398: 'minestrone', r399: 'scallion egg chinese soup', r400: 'shiro miso ozoni mochi',
 };
 
-function recipeImageUrl(recipe) {
+// Build a fallback chain of image URLs for a recipe.
+// The loader tries each in order; on error it advances to the next.
+// Finally falls back to a deterministic abstract photo via picsum so the
+// modal always shows *something* visual, rather than a blank emoji frame.
+function recipeImageCandidates(recipe) {
     const q = IMG_QUERY[recipe.id] || recipe.name;
+    const first = q.split(/[\s,]+/)[0];
     const seed = (recipe.id || '').replace(/\D/g, '') || '1';
-    // Tags separated by comma → Flickr multi-tag search. Lock = deterministic.
-    const tagStr = `${q},japanese,food`.replace(/\s+/g, ' ').trim();
-    return `https://loremflickr.com/600/400/${encodeURIComponent(tagStr)}?lock=${seed}`;
+    const encode = (s) => encodeURIComponent(s.replace(/\s+/g, ' ').trim());
+    return [
+        // 1. Loremflickr: keyword + japanese,food (tight match)
+        `https://loremflickr.com/600/400/${encode(`${q},japanese,food`)}?lock=${seed}`,
+        // 2. Loremflickr: keyword + food only (looser match)
+        `https://loremflickr.com/600/400/${encode(`${q},food`)}?lock=${seed}`,
+        // 3. Loremflickr: first word + food (broadest keyword match)
+        `https://loremflickr.com/600/400/${encode(`${first},food`)}?lock=${seed}`,
+        // 4. Loremflickr: generic Japanese food / cuisine
+        `https://loremflickr.com/600/400/${encode('japanese,food,cuisine,dish')}?lock=${seed}`,
+        // 5. Last resort: picsum (a beautiful abstract photo) — better than blank
+        `https://picsum.photos/seed/mekuri-${recipe.id}/600/400`,
+    ];
+}
+function recipeImageUrl(recipe) {
+    return recipeImageCandidates(recipe)[0];  // primary (kept for back-compat)
+}
+
+// ══════════════════════════════════════════════════════════════════
+// INGREDIENT LIBRARY — for reverse fridge-to-recipe search
+// Each entry: { cat, emoji, label, aliases[] } — aliases match substrings
+// of recipe.ingredients[].name in any RECIPES entry.
+// ══════════════════════════════════════════════════════════════════
+const INGREDIENT_LIBRARY = [
+    // 野菜
+    { cat:'野菜', emoji:'🧅', label:'玉ねぎ',    aliases:['玉ねぎ'] },
+    { cat:'野菜', emoji:'🥕', label:'にんじん',  aliases:['にんじん'] },
+    { cat:'野菜', emoji:'🥔', label:'じゃがいも',aliases:['じゃがいも'] },
+    { cat:'野菜', emoji:'🥬', label:'キャベツ',  aliases:['キャベツ'] },
+    { cat:'野菜', emoji:'🥬', label:'白菜',      aliases:['白菜'] },
+    { cat:'野菜', emoji:'🥬', label:'レタス',    aliases:['レタス'] },
+    { cat:'野菜', emoji:'🫒', label:'大根',      aliases:['大根'] },
+    { cat:'野菜', emoji:'🍅', label:'トマト',    aliases:['トマト'] },
+    { cat:'野菜', emoji:'🫑', label:'ピーマン',  aliases:['ピーマン'] },
+    { cat:'野菜', emoji:'🥦', label:'ブロッコリー', aliases:['ブロッコリー'] },
+    { cat:'野菜', emoji:'🥬', label:'ほうれん草',aliases:['ほうれん草'] },
+    { cat:'野菜', emoji:'🥬', label:'小松菜',    aliases:['小松菜'] },
+    { cat:'野菜', emoji:'🍆', label:'なす',      aliases:['なす','茄子'] },
+    { cat:'野菜', emoji:'🥒', label:'きゅうり',  aliases:['きゅうり'] },
+    { cat:'野菜', emoji:'🎃', label:'かぼちゃ',  aliases:['かぼちゃ'] },
+    { cat:'野菜', emoji:'🌿', label:'ごぼう',    aliases:['ごぼう'] },
+    { cat:'野菜', emoji:'🍄', label:'しいたけ',  aliases:['しいたけ'] },
+    { cat:'野菜', emoji:'🍄', label:'しめじ',    aliases:['しめじ'] },
+    { cat:'野菜', emoji:'🍄', label:'えのき',    aliases:['えのき'] },
+    { cat:'野菜', emoji:'🌱', label:'もやし',    aliases:['もやし'] },
+    { cat:'野菜', emoji:'🧅', label:'長ねぎ',    aliases:['長ねぎ','ねぎ'] },
+    { cat:'野菜', emoji:'🧄', label:'にんにく',  aliases:['にんにく'] },
+    { cat:'野菜', emoji:'🫚', label:'しょうが',  aliases:['しょうが','生姜'] },
+    { cat:'野菜', emoji:'🌿', label:'アスパラ',  aliases:['アスパラ'] },
+    { cat:'野菜', emoji:'🌶', label:'オクラ',    aliases:['オクラ'] },
+    { cat:'野菜', emoji:'🪷', label:'れんこん',  aliases:['れんこん'] },
+    { cat:'野菜', emoji:'🥔', label:'里芋',      aliases:['里芋'] },
+    { cat:'野菜', emoji:'🥬', label:'かぶ',      aliases:['かぶ'] },
+    // 肉
+    { cat:'肉',   emoji:'🐖', label:'豚肉',      aliases:['豚肉','豚バラ','豚ロース','豚こま','豚もも','豚ひき'] },
+    { cat:'肉',   emoji:'🍗', label:'鶏肉',      aliases:['鶏肉','鶏もも','鶏胸','鶏ひき','鶏ささみ','鶏手羽'] },
+    { cat:'肉',   emoji:'🥩', label:'牛肉',      aliases:['牛肉'] },
+    { cat:'肉',   emoji:'🍖', label:'合いびき肉', aliases:['合いびき','挽き肉'] },
+    { cat:'肉',   emoji:'🥓', label:'ベーコン',  aliases:['ベーコン'] },
+    { cat:'肉',   emoji:'🍖', label:'ハム',      aliases:['ハム'] },
+    // 魚
+    { cat:'魚',   emoji:'🐟', label:'鮭',        aliases:['鮭','生鮭','塩鮭'] },
+    { cat:'魚',   emoji:'🐟', label:'さば',      aliases:['さば','鯖','サバ'] },
+    { cat:'魚',   emoji:'🐟', label:'ぶり',      aliases:['ぶり','ブリ'] },
+    { cat:'魚',   emoji:'🐟', label:'いわし',    aliases:['いわし'] },
+    { cat:'魚',   emoji:'🐟', label:'鯛',        aliases:['鯛'] },
+    { cat:'魚',   emoji:'🐟', label:'タラ',      aliases:['タラ','鱈'] },
+    { cat:'魚',   emoji:'🦐', label:'海老',      aliases:['海老','えび'] },
+    { cat:'魚',   emoji:'🦑', label:'イカ',      aliases:['イカ','いか'] },
+    { cat:'魚',   emoji:'🦪', label:'ホタテ',    aliases:['ホタテ'] },
+    { cat:'魚',   emoji:'🐟', label:'まぐろ',    aliases:['まぐろ'] },
+    { cat:'魚',   emoji:'🦪', label:'あさり',    aliases:['あさり'] },
+    { cat:'魚',   emoji:'🦪', label:'しじみ',    aliases:['しじみ'] },
+    { cat:'魚',   emoji:'🦪', label:'牡蠣',      aliases:['牡蠣'] },
+    // その他
+    { cat:'他',   emoji:'🥚', label:'卵',        aliases:['卵'] },
+    { cat:'他',   emoji:'🥛', label:'牛乳',      aliases:['牛乳'] },
+    { cat:'他',   emoji:'🧈', label:'バター',    aliases:['バター'] },
+    { cat:'他',   emoji:'🧀', label:'チーズ',    aliases:['チーズ','パルメザン','モッツァレラ'] },
+    { cat:'他',   emoji:'🎋', label:'豆腐',      aliases:['豆腐'] },
+    { cat:'他',   emoji:'🫘', label:'納豆',      aliases:['納豆'] },
+    { cat:'他',   emoji:'🟫', label:'油揚げ',    aliases:['油揚げ'] },
+    { cat:'他',   emoji:'🟫', label:'厚揚げ',    aliases:['厚揚げ'] },
+    { cat:'他',   emoji:'🍚', label:'ご飯',      aliases:['ご飯','ごはん','米'] },
+    { cat:'他',   emoji:'🍞', label:'食パン',    aliases:['食パン'] },
+    { cat:'他',   emoji:'🍜', label:'うどん',    aliases:['うどん'] },
+    { cat:'他',   emoji:'🍜', label:'そば',      aliases:['そば'] },
+    { cat:'他',   emoji:'🍝', label:'パスタ',    aliases:['スパゲッティ','カッペリーニ','マカロニ'] },
+    { cat:'他',   emoji:'🍥', label:'わかめ',    aliases:['わかめ'] },
+    { cat:'他',   emoji:'🟤', label:'こんにゃく', aliases:['こんにゃく'] },
+    { cat:'他',   emoji:'🟫', label:'ひじき',    aliases:['ひじき'] },
+];
+
+// Find recipes matching selected ingredients. Returns sorted array of
+// { recipe, matched: [label, label, ...], score }.
+function matchRecipesByIngredients(selectedLabels) {
+    if (!selectedLabels.size) return [];
+    const libSelected = INGREDIENT_LIBRARY.filter(x => selectedLabels.has(x.label));
+    const results = [];
+    for (const r of RECIPES) {
+        const names = (r.ingredients || []).map(i => i.name);
+        const matched = [];
+        for (const lib of libSelected) {
+            if (names.some(n => lib.aliases.some(a => n.includes(a)))) {
+                matched.push(lib.label);
+            }
+        }
+        if (matched.length === 0) continue;
+        results.push({ recipe: r, matched, score: matched.length });
+    }
+    results.sort((a, b) => b.score - a.score || a.recipe.time - b.recipe.time);
+    return results;
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -2086,43 +3612,223 @@ function renderAll() {
 
 // ══════════════════════════════════════════════════════════════════
 // TODAY CARD — 日めくり style calendar page for today's meals
+// Drag the bottom corner grip upward to peel the page to the next day.
 // ══════════════════════════════════════════════════════════════════
-function renderTodayCard() {
-    const now = new Date();
-    const dayKey = ['sun','mon','tue','wed','thu','fri','sat'][now.getDay()];
+let todayOffset = 0;
+
+const DAY_KEYS = ['sun','mon','tue','wed','thu','fri','sat'];
+
+function getOffsetDate(offset) {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + offset);
+    return d;
+}
+
+function buildTodayPageHTML(offset, { withGrips } = {}) {
+    const date = getOffsetDate(offset);
+    const dayKey = DAY_KEYS[date.getDay()];
     const day = DAYS.find(d => d.key === dayKey);
+    const eyebrow = offset === 0
+        ? 'Today · きょう'
+        : offset === 1
+            ? 'Tomorrow · あした'
+            : `+${offset} days · ${offset}日後`;
 
-    $('#todayDateNum').textContent   = now.getDate();
-    $('#todayDateLabel').textContent = `${now.getMonth() + 1}月 · ${day.full}`;
-
-    const slots = [
-        { meal: 'breakfast', target: '#todayBreakfast' },
-        { meal: 'lunch',     target: '#todayLunch' },
-        { meal: 'dinner',    target: '#todayDinner' },
-    ];
-    for (const s of slots) {
-        const wrap = $(s.target);
-        wrap.innerHTML = '';
-        const dishes = state.menu[dayKey][s.meal] || [];
-        if (!dishes.length) {
-            wrap.innerHTML = `<div class="today-meal-empty">— 未定 —</div>`;
-            continue;
-        }
-        for (const rid of dishes) {
+    const slotHTML = (mealKey) => {
+        const dishes = state.menu[dayKey]?.[mealKey] || [];
+        if (!dishes.length) return `<div class="today-meal-empty">— 未定 —</div>`;
+        return dishes.map(rid => {
             const r = byId(rid);
-            if (!r) continue;
-            const row = document.createElement('div');
-            row.className = 'today-meal-item';
-            row.innerHTML = `
-                <span class="text-lg leading-none shrink-0" aria-hidden="true">${r.emoji}</span>
-                <span class="flex-1 truncate">${r.name}</span>
-                <span class="text-[10px] text-muted tabular-nums">${r.time}分</span>
-            `;
-            row.addEventListener('click', () => openDetail(r));
-            wrap.appendChild(row);
-        }
+            if (!r) return '';
+            return `
+                <div class="today-meal-item" data-rid="${r.id}">
+                    <span class="text-lg leading-none shrink-0" aria-hidden="true">${r.emoji}</span>
+                    <span class="flex-1 truncate">${r.name}</span>
+                    <span class="text-[10px] text-muted tabular-nums">${r.time}分</span>
+                </div>`;
+        }).join('');
+    };
+
+    const grips = withGrips ? `
+        <button type="button" class="flip-grip flip-grip-bl" data-corner="bl" aria-label="左下から日めくり">
+            <span class="flip-hint">↑ 翌日へ</span>
+        </button>
+        <button type="button" class="flip-grip flip-grip-br" data-corner="br" aria-label="右下から日めくり">
+            <span class="flip-hint">↑ 翌日へ</span>
+        </button>` : '';
+
+    return `
+        <div class="flex justify-center gap-12 pt-3 pb-1" aria-hidden="true">
+            <span class="w-2 h-2 rounded-full border border-border bg-hover"></span>
+            <span class="w-2 h-2 rounded-full border border-border bg-hover"></span>
+            <span class="w-2 h-2 rounded-full border border-border bg-hover"></span>
+        </div>
+        <header class="text-center pt-2 pb-5">
+            <div class="text-[10px] tracking-[0.4em] text-muted uppercase">${eyebrow}</div>
+            <div class="today-date-big text-[72px] sm:text-[96px] mt-2">${date.getDate()}</div>
+            <div class="flex items-center justify-center gap-3 mt-2">
+                <span class="h-px w-8 bg-accent"></span>
+                <span class="text-sm text-sub tracking-wider">${date.getMonth() + 1}月 · ${day.full}</span>
+                <span class="h-px w-8 bg-accent"></span>
+            </div>
+        </header>
+        <div class="today-meals px-5 sm:px-8 pb-6">
+            <div><div class="today-meal-label">🌅 朝</div><div class="today-meal-list" data-meal="breakfast">${slotHTML('breakfast')}</div></div>
+            <div><div class="today-meal-label">☀️ 昼</div><div class="today-meal-list" data-meal="lunch">${slotHTML('lunch')}</div></div>
+            <div><div class="today-meal-label">🌙 夜</div><div class="today-meal-list" data-meal="dinner">${slotHTML('dinner')}</div></div>
+        </div>
+        <footer class="text-center py-2.5 border-t border-border bg-cream/40 text-[10px] text-muted tracking-[0.3em] uppercase">
+            ◼ 日めくり献立  ·  daily flip
+        </footer>
+        ${grips}
+    `;
+}
+
+function renderTodayCard() {
+    const front = $('#todayPageFront');
+    const back  = $('#todayPageBack');
+    if (!front || !back) return;
+    front.innerHTML = buildTodayPageHTML(todayOffset, { withGrips: true });
+    back.innerHTML  = buildTodayPageHTML(todayOffset + 1);
+
+    // Meal rows → open detail
+    front.querySelectorAll('.today-meal-item').forEach(row => {
+        row.addEventListener('click', () => {
+            const r = byId(row.dataset.rid);
+            if (r) openDetail(r);
+        });
+    });
+
+    // Grip gesture
+    front.querySelectorAll('.flip-grip').forEach(g => {
+        g.addEventListener('pointerdown', onFlipGripDown);
+    });
+
+    // Reset-to-today button
+    const reset = $('#todayReset');
+    if (reset) reset.classList.toggle('hidden', todayOffset === 0);
+}
+
+// ── drag gesture ──────────────────────────────────────────────────
+let flipDrag = null;
+
+function onFlipGripDown(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const grip = e.currentTarget;
+    const card = $('#todayCard');
+    const front = $('#todayPageFront');
+    grip.setPointerCapture(e.pointerId);
+    flipDrag = {
+        pointerId: e.pointerId,
+        grip,
+        startY: e.clientY,
+        startX: e.clientX,
+        cardH: card.offsetHeight,
+        corner: grip.dataset.corner,
+        lastProgress: 0,
+        lastT: performance.now(),
+        vel: 0,
+    };
+    front.classList.add('flip-dragging');
+    grip.addEventListener('pointermove', onFlipGripMove);
+    grip.addEventListener('pointerup', onFlipGripUp);
+    grip.addEventListener('pointercancel', onFlipGripUp);
+}
+
+function onFlipGripMove(e) {
+    if (!flipDrag || e.pointerId !== flipDrag.pointerId) return;
+    const dy = flipDrag.startY - e.clientY; // upward = positive
+    const progress = Math.max(0, Math.min(1, dy / (flipDrag.cardH * 0.7)));
+    const now = performance.now();
+    const dt = Math.max(1, now - flipDrag.lastT);
+    flipDrag.vel = (progress - flipDrag.lastProgress) / dt; // progress per ms
+    flipDrag.lastProgress = progress;
+    flipDrag.lastT = now;
+    applyFlipTransform(progress, flipDrag.corner);
+}
+
+function applyFlipTransform(progress, corner) {
+    const front = $('#todayPageFront');
+    const deg = progress * 180; // positive → top stays, bottom lifts toward viewer
+    const tilt = (corner === 'br' ? -1 : 1) * progress * 6; // subtle corner skew
+    front.style.transform = `rotateY(${tilt}deg) rotateX(${deg}deg)`;
+    // lift shadow in the first half, fade it out near the end
+    const lift = progress < 0.5 ? progress * 40 : (1 - progress) * 40;
+    front.style.boxShadow = `0 ${lift * 0.6}px ${lift * 1.4}px -${lift * 0.3}px rgba(55,53,47,0.18)`;
+    // gradually fade past 60% so the back page reads cleanly
+    front.style.opacity = progress < 0.55 ? 1 : Math.max(0, 1 - (progress - 0.55) * 2.2);
+}
+
+function onFlipGripUp(e) {
+    if (!flipDrag || e.pointerId !== flipDrag.pointerId) return;
+    const { grip } = flipDrag;
+    const progress = flipDrag.lastProgress;
+    const vel = flipDrag.vel;
+    const corner = flipDrag.corner;
+    try { grip.releasePointerCapture(flipDrag.pointerId); } catch {}
+    grip.removeEventListener('pointermove', onFlipGripMove);
+    grip.removeEventListener('pointerup', onFlipGripUp);
+    grip.removeEventListener('pointercancel', onFlipGripUp);
+    flipDrag = null;
+
+    const front = $('#todayPageFront');
+    front.classList.remove('flip-dragging');
+
+    const commit = progress > 0.38 || vel > 0.0022;
+
+    if (commit) {
+        // Animate remaining rotation to 180°, fade out, then swap content.
+        const tilt = (corner === 'br' ? -1 : 1) * 8;
+        front.style.transform = `rotateY(${tilt}deg) rotateX(180deg)`;
+        front.style.opacity = '0';
+        front.style.boxShadow = '0 4px 30px rgba(55,53,47,0.15)';
+        let finished = false;
+        const finish = (ev) => {
+            // Only respond to transform transitions (skip shadow/opacity chatter)
+            if (ev && ev.propertyName && ev.propertyName !== 'transform') return;
+            if (finished) return;
+            finished = true;
+            front.removeEventListener('transitionend', finish);
+            todayOffset += 1;
+            renderTodayCard();
+            const newFront = $('#todayPageFront');
+            newFront.style.transform = '';
+            newFront.style.opacity = '';
+            newFront.style.boxShadow = '';
+            newFront.classList.remove('settling');
+            void newFront.offsetWidth; // reflow to restart animation
+            newFront.classList.add('settling');
+            setTimeout(() => newFront.classList.remove('settling'), 600);
+        };
+        front.addEventListener('transitionend', finish);
+        setTimeout(finish, 600); // safety fallback
+    } else {
+        // Snap back to flat
+        front.style.transform = '';
+        front.style.opacity = '';
+        front.style.boxShadow = '';
     }
 }
+
+// Wire "back to today" button once on setup
+function wireTodayReset() {
+    const reset = $('#todayReset');
+    if (!reset || reset.dataset.wired) return;
+    reset.dataset.wired = '1';
+    reset.addEventListener('click', () => {
+        if (todayOffset === 0) return;
+        todayOffset = 0;
+        renderTodayCard();
+        const front = $('#todayPageFront');
+        front.classList.remove('settling');
+        void front.offsetWidth;
+        front.classList.add('settling');
+        setTimeout(() => front.classList.remove('settling'), 600);
+    });
+}
+wireTodayReset();
 
 // ══════════════════════════════════════════════════════════════════
 // PICKER MODAL
@@ -2411,33 +4117,44 @@ function closeDetail() {
     detailContext = null;
 }
 
-// Fetch a real photo via Loremflickr (CC-licensed Flickr), with loading and fallback.
+// Fetch a real photo with a cascading fallback chain. If every source
+// fails we show an emoji placeholder. Ensures every recipe has *some* image.
 function loadRecipePhoto(recipe) {
     const img       = $('#detailImg');
     const loading   = $('#detailImgLoading');
     const fallback  = $('#detailImgFallback');
     const fbEmoji   = $('#detailImgFallbackEmoji');
 
-    // Reset visual state for each open
+    // Reset visual state
     img.classList.add('opacity-0');
     img.classList.remove('opacity-100');
     loading.classList.remove('hidden');
     fallback.classList.add('hidden');
     fallback.classList.remove('flex');
     fbEmoji.textContent = recipe.emoji;
+    img.alt = recipe.name;
 
+    const candidates = recipeImageCandidates(recipe);
+    let idx = 0;
+    const tryNext = () => {
+        if (idx >= candidates.length) {
+            // Exhausted — show emoji fallback
+            loading.classList.add('hidden');
+            fallback.classList.remove('hidden');
+            fallback.classList.add('flex');
+            return;
+        }
+        img.src = candidates[idx++];
+    };
     img.onload = () => {
+        // Natural width = 0 means broken transparent 1x1 pixel — retry
+        if (img.naturalWidth < 32 && idx < candidates.length) { tryNext(); return; }
         loading.classList.add('hidden');
         img.classList.remove('opacity-0');
         img.classList.add('opacity-100');
     };
-    img.onerror = () => {
-        loading.classList.add('hidden');
-        fallback.classList.remove('hidden');
-        fallback.classList.add('flex');
-    };
-    img.src = recipeImageUrl(recipe);
-    img.alt = recipe.name;
+    img.onerror = tryNext;
+    tryNext();
 }
 
 function renderDetailFooter() {
@@ -2586,6 +4303,150 @@ function shuffle(arr) {
 // EVENT WIRING
 // ══════════════════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════════════════
+// FRIDGE REVERSE-SEARCH — pick ingredients → ranked recipe list
+// ══════════════════════════════════════════════════════════════════
+const fridgeSelected = new Set();
+
+function openFridge() {
+    renderFridgeSelect();
+    $('#fridgeSelectView').classList.remove('hidden');
+    $('#fridgeResultsView').classList.add('hidden');
+    $('#fridgeBack').classList.add('hidden');
+    $('#fridgeModal').classList.remove('hidden');
+    $('#fridgeModal').setAttribute('aria-hidden', 'false');
+    updateFridgeCount();
+}
+function closeFridge() {
+    $('#fridgeModal').classList.add('hidden');
+    $('#fridgeModal').setAttribute('aria-hidden', 'true');
+}
+
+function renderFridgeSelect() {
+    const wrap = $('#fridgeSelectView');
+    wrap.innerHTML = '';
+    const cats = {};
+    for (const lib of INGREDIENT_LIBRARY) (cats[lib.cat] = cats[lib.cat] || []).push(lib);
+    const catOrder = ['野菜', '肉', '魚', '他'];
+    for (const cat of catOrder) {
+        if (!cats[cat]) continue;
+        const section = document.createElement('section');
+        section.className = 'mb-5';
+        const heading = document.createElement('h4');
+        heading.className = 'text-[11px] font-semibold tracking-[0.22em] text-muted uppercase mb-2';
+        heading.textContent = cat;
+        section.appendChild(heading);
+        const grid = document.createElement('div');
+        grid.className = 'flex flex-wrap gap-1.5';
+        for (const lib of cats[cat]) {
+            const on = fridgeSelected.has(lib.label);
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs transition
+                            ${on ? 'bg-ink text-paper border-ink' : 'bg-paper text-ink border-border hover:border-ink'}`;
+            chip.innerHTML = `<span class="text-sm leading-none">${lib.emoji}</span>${lib.label}`;
+            chip.addEventListener('click', () => {
+                if (fridgeSelected.has(lib.label)) fridgeSelected.delete(lib.label);
+                else                                fridgeSelected.add(lib.label);
+                renderFridgeSelect();
+                updateFridgeCount();
+            });
+            grid.appendChild(chip);
+        }
+        section.appendChild(grid);
+        wrap.appendChild(section);
+    }
+}
+
+function updateFridgeCount() {
+    const n = fridgeSelected.size;
+    const results = matchRecipesByIngredients(fridgeSelected);
+    const label = $('#fridgeSearchLabel');
+    const btn = $('#fridgeSearch');
+    if (n === 0) {
+        label.textContent = '食材を選んでください';
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+    } else {
+        label.textContent = `${n}個の食材で ${results.length} 件のレシピを見る →`;
+        btn.disabled = false;
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+}
+
+function showFridgeResults() {
+    if (fridgeSelected.size === 0) return;
+    const results = matchRecipesByIngredients(fridgeSelected);
+    const list = $('#fridgeResultsList');
+    list.innerHTML = '';
+
+    if (!results.length) {
+        list.innerHTML = `<div class="text-center py-12 text-sm text-muted">
+            <div class="text-4xl mb-3">🤔</div>
+            <p>該当するレシピがありません。</p>
+            <p class="text-xs mt-1">食材を増やしてみてください。</p>
+        </div>`;
+    } else {
+        // Summary
+        const summary = document.createElement('div');
+        summary.className = 'text-[11px] tracking-wider text-muted mb-3 uppercase';
+        summary.innerHTML = `◆ 一致度順に ${results.length} 件`;
+        list.appendChild(summary);
+
+        for (const { recipe, matched, score } of results) {
+            const card = document.createElement('div');
+            card.className = 'group flex items-center gap-3 p-3 border border-border rounded-md hover:border-ink hover:bg-hover cursor-pointer transition mb-2';
+            card.innerHTML = `
+                <span class="text-2xl leading-none shrink-0">${recipe.emoji}</span>
+                <div class="flex-1 min-w-0">
+                    <div class="text-sm font-medium truncate">${recipe.name}</div>
+                    <div class="text-[10px] text-muted tracking-wider mt-0.5">${recipe.cat} · ${recipe.time}分</div>
+                    <div class="text-[10px] mt-1 text-accent truncate">${matched.map(m => `#${m}`).join(' ')}</div>
+                </div>
+                <div class="text-right shrink-0">
+                    <div class="text-lg font-semibold text-ink tabular-nums">${score}</div>
+                    <div class="text-[9px] text-muted tracking-wider">MATCH</div>
+                </div>
+            `;
+            card.addEventListener('click', () => {
+                closeFridge();
+                openDetail(recipe, { mode: 'catalog' });
+            });
+            list.appendChild(card);
+        }
+    }
+
+    $('#fridgeSelectView').classList.add('hidden');
+    $('#fridgeResultsView').classList.remove('hidden');
+    $('#fridgeBack').classList.remove('hidden');
+    $('#fridgeSearchLabel').textContent = '結果を閉じる';
+}
+
+// Wire fridge
+$('#btnFridge').addEventListener('click', openFridge);
+$('#fridgeClose').addEventListener('click', closeFridge);
+$('#fridgeModal').addEventListener('click', (e) => {
+    if (e.target === $('#fridgeModal')) closeFridge();
+});
+$('#fridgeBack').addEventListener('click', () => {
+    $('#fridgeSelectView').classList.remove('hidden');
+    $('#fridgeResultsView').classList.add('hidden');
+    $('#fridgeBack').classList.add('hidden');
+    updateFridgeCount();
+});
+$('#fridgeClear').addEventListener('click', () => {
+    fridgeSelected.clear();
+    renderFridgeSelect();
+    updateFridgeCount();
+});
+$('#fridgeSearch').addEventListener('click', () => {
+    if ($('#fridgeResultsView').classList.contains('hidden')) {
+        showFridgeResults();
+    } else {
+        closeFridge();
+    }
+});
+
+// ══════════════════════════════════════════════════════════════════
 // FAMILY MODAL
 // ══════════════════════════════════════════════════════════════════
 function openFamilyModal() {
@@ -2670,7 +4531,13 @@ if (!profile.completed) {
     setTimeout(openFamilyModal, 400);
 }
 
-$('#search').addEventListener('input', renderSidebar);
+// Debounce search input — with 265 recipes we re-render on each keystroke
+// which is still fast but debouncing (120ms) keeps typing buttery smooth on mobile.
+let _searchDebounce = null;
+$('#search').addEventListener('input', () => {
+    clearTimeout(_searchDebounce);
+    _searchDebounce = setTimeout(renderSidebar, 120);
+});
 
 $('#btnSave').addEventListener('click', saveMenu);
 $('#saveName').addEventListener('keydown', (e) => {
@@ -2704,7 +4571,11 @@ $('#pickerModal').addEventListener('click', (e) => {
 $$('.picker-tab').forEach(b => {
     b.addEventListener('click', () => setPickerTab(b.dataset.tab));
 });
-$('#pickerSearch').addEventListener('input', renderPickerList);
+let _pickerSearchDebounce = null;
+$('#pickerSearch').addEventListener('input', () => {
+    clearTimeout(_pickerSearchDebounce);
+    _pickerSearchDebounce = setTimeout(renderPickerList, 120);
+});
 
 // Composer wiring
 $('#composerClose').addEventListener('click', closeComposer);
