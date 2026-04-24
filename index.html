@@ -19,24 +19,43 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&family=Noto+Serif+JP:wght@600;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
 tailwind.config = {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['"Noto Sans JP"', '"Inter"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-                serif: ['"Noto Serif JP"', 'Georgia', 'serif'],
+                sans:    ['"Inter"', '"Noto Sans JP"', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+                display: ['"Inter"', '"Noto Sans JP"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                serif:   ['"Noto Serif JP"', 'Georgia', 'serif'],
             },
             colors: {
-                ink:    '#37352f',
-                sub:    '#6b7280',
-                muted:  '#9b9a97',
-                border: '#e5e7eb',
-                hover:  '#f7f6f3',
-                accent: '#c2410c',
-                cream:  '#fdfcf9',
+                ink:      '#2B2A26',
+                'ink-soft':'#4A4944',
+                sub:      '#5A5953',
+                muted:    '#7E7C77',
+                border:   '#DEDDD9',
+                'border-soft': '#EAE9E5',
+                hover:    '#F2F1ED',
+                paper:    '#FFFFFF',
+                cream:    '#FBFBFA',
+                'cream-deep': '#F5F4EF',
+                accent:   '#D23E00',
+                'accent-soft':'#FFE4D6',
+                star:     '#F59E0B',
+                breakfast:'#FEF3C7',
+                lunch:    '#DBEAFE',
+                dinner:   '#E0E7FF',
+            },
+            boxShadow: {
+                notion:  '0 1px 2px rgba(15,15,15,0.06), 0 2px 4px rgba(15,15,15,0.04)',
+                sticker: '0 6px 18px -6px rgba(15,15,15,0.16), 0 2px 4px rgba(15,15,15,0.06)',
+                lift:    '0 12px 32px -12px rgba(15,15,15,0.22), 0 4px 8px -4px rgba(15,15,15,0.08)',
+            },
+            letterSpacing: {
+                tightest: '-0.03em',
+                tighter2: '-0.025em',
             }
         }
     }
@@ -44,49 +63,193 @@ tailwind.config = {
 </script>
 <style>
     html, body {
-        background: #fdfcf9;
-        color: #37352f;
-        font-family: 'Noto Sans JP', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+        background: #FBFBFA;
+        color: #2B2A26;
+        font-family: 'Inter', 'Noto Sans JP', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+        font-weight: 500;
+        font-feature-settings: "palt", "kern";
         -webkit-font-smoothing: antialiased;
-        font-feature-settings: "palt";
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
     }
+    h1, h2, h3, h4, h5 { color: #2B2A26; }
+    p, li, td, th, label, input, textarea, select, button { font-weight: 500; }
+    /* 極端に小さい字は12-13pxに */
+    [class*="text-[10px]"] { font-size: 11.5px !important; }
+    [class*="text-[11px]"] { font-size: 12.5px !important; }
+    [class*="text-[11.5px]"] { font-size: 12.5px !important; }
+    [class*="text-[12px]"] { font-size: 13px !important; }
     * { -webkit-tap-highlight-color: transparent; }
 
-    /* Hero title subtle animation */
-    .hero-title { animation: fadeUp 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
-    .hero-tag   { animation: fadeUp 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both; }
-    .hero-cta   { animation: fadeUp 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) 0.3s both; }
-    .hero-card  { animation: fadeUp 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 0.45s both; }
+    /* ── Notion-style display headline ── */
+    .display {
+        font-family: 'Inter', 'Noto Sans JP', sans-serif;
+        font-weight: 800;
+        letter-spacing: -0.032em;
+        line-height: 1.05;
+    }
+    .display-jp {
+        font-family: 'Noto Sans JP', 'Inter', sans-serif;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+        line-height: 1.08;
+    }
+    .kicker {
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 12px;
+        letter-spacing: 0.1em;
+    }
+
+    /* ── Hero typography entrance ── */
+    .hero-title { animation: fadeUp .7s cubic-bezier(.2,.7,.2,1) both; }
+    .hero-tag   { animation: fadeUp .7s cubic-bezier(.2,.7,.2,1) .15s both; }
+    .hero-cta   { animation: fadeUp .7s cubic-bezier(.2,.7,.2,1) .30s both; }
+    .hero-meta  { animation: fadeUp .7s cubic-bezier(.2,.7,.2,1) .45s both; }
+    .hero-card  { animation: fadeUp .8s cubic-bezier(.2,.7,.2,1) .20s both; }
     @keyframes fadeUp {
-        from { opacity: 0; transform: translateY(10px); }
+        from { opacity: 0; transform: translateY(14px); }
         to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* Feature card hover */
+    /* ── Playful background gradient — Notion style ── */
+    .hero-bg {
+        position: absolute; inset: 0;
+        z-index: 0; pointer-events: none; overflow: hidden;
+    }
+    .hero-bg::before {
+        content: '';
+        position: absolute; inset: -40%;
+        background:
+            radial-gradient(closest-side at 30% 30%, rgba(224, 62, 0, 0.08), transparent 65%),
+            radial-gradient(closest-side at 75% 40%, rgba(245, 158, 11, 0.08), transparent 65%),
+            radial-gradient(closest-side at 60% 80%, rgba(124, 104, 238, 0.07), transparent 60%);
+        filter: blur(4px);
+    }
+    /* Tiny confetti dots */
+    .confetti {
+        position: absolute; width: 6px; height: 6px; border-radius: 50%;
+        pointer-events: none; z-index: 1; opacity: 0.6;
+    }
+    .confetti.a { background: #E03E00; }
+    .confetti.b { background: #F59E0B; }
+    .confetti.c { background: #7DD3FC; }
+    .confetti.d { background: #A5B4FC; }
+
+    /* ── Emoji sticker floaters ── */
+    .sticker {
+        position: absolute;
+        display: inline-flex; align-items: center; justify-content: center;
+        background: #FFFFFF;
+        border: 1px solid #E9E9E7;
+        border-radius: 16px;
+        box-shadow: 0 6px 18px -6px rgba(15,15,15,0.16), 0 2px 4px rgba(15,15,15,0.06);
+        font-size: 32px;
+        width: 60px; height: 60px;
+        user-select: none;
+        z-index: 3;
+        will-change: transform;
+    }
+    .sticker.lg { width: 74px; height: 74px; font-size: 40px; border-radius: 20px; }
+    .sticker.sm { width: 48px; height: 48px; font-size: 24px; border-radius: 14px; }
+
+    .sticker-1 { top:  2%; left: 28%; animation: stickA 6.5s ease-in-out infinite; --rot: -8deg; }
+    .sticker-2 { top: 10%; right: -2%; animation: stickB 7.2s ease-in-out infinite .4s; --rot: 12deg; }
+    .sticker-3 { top: 58%; left: -3%; animation: stickC 8.0s ease-in-out infinite .8s; --rot: -14deg; }
+    .sticker-4 { bottom: 6%; left: 30%; animation: stickA 6.8s ease-in-out infinite .2s; --rot: 6deg; }
+    .sticker-5 { top: 38%; right: 10%; animation: stickB 7.6s ease-in-out infinite 1.1s; --rot: -10deg; }
+    .sticker-6 { top: 72%; right: -4%; animation: stickC 8.4s ease-in-out infinite .6s; --rot: 18deg; }
+    .sticker  { transform: rotate(var(--rot, 0deg)); }
+
+    @keyframes stickA {
+        0%,100% { transform: rotate(var(--rot)) translateY(0);     }
+        50%     { transform: rotate(var(--rot)) translateY(-12px); }
+    }
+    @keyframes stickB {
+        0%,100% { transform: rotate(var(--rot)) translate(0, 0); }
+        50%     { transform: rotate(var(--rot)) translate(-6px, -10px); }
+    }
+    @keyframes stickC {
+        0%,100% { transform: rotate(var(--rot)) translateY(0); }
+        50%     { transform: rotate(calc(var(--rot) + 4deg)) translateY(-14px); }
+    }
+
+    .sticker:hover {
+        transform: rotate(0) scale(1.08) translateY(-4px);
+        transition: transform .25s cubic-bezier(.2,.7,.2,1);
+    }
+
+    /* Mobile: thin out stickers, reposition so they don't cover the card */
+    @media (max-width: 640px) {
+        .sticker-1 { top: -34px; left: 2%; }
+        .sticker-2 { top: -28px; right: 4%; }
+        .sticker-3 { bottom: -18px; left: 6%; top: auto; }
+        .sticker-4 { display: none; }
+        .sticker-5 { display: none; }
+        .sticker-6 { bottom: -10px; right: 4%; top: auto; }
+        .sticker.lg { width: 56px; height: 56px; font-size: 28px; border-radius: 16px; }
+        .sticker    { width: 48px; height: 48px; font-size: 22px; border-radius: 14px; }
+    }
+
+    /* ── Scribble underline (Notion-ish hand-drawn accent) ── */
+    .scribble {
+        position: relative;
+        display: inline-block;
+        white-space: nowrap;
+    }
+    .scribble::after {
+        content: '';
+        position: absolute;
+        left: -6px; right: -6px; bottom: -4px; height: 14px;
+        background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 14' preserveAspectRatio='none'><path d='M2 8 Q 30 2 60 8 T 120 8 T 198 8' stroke='%23E03E00' stroke-width='4' fill='none' stroke-linecap='round' opacity='0.4'/></svg>") center/100% 100% no-repeat;
+        transform: scaleX(0); transform-origin: left;
+        animation: scribbleIn 1s 1s cubic-bezier(.2,.7,.2,1) forwards;
+        z-index: -1;
+    }
+    @keyframes scribbleIn { to { transform: scaleX(1); } }
+
+    /* ── Feature card hover — Notion-like ── */
     .feat {
-        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease, background .2s ease;
     }
     .feat:hover {
         transform: translateY(-2px);
-        border-color: #37352f;
-        box-shadow: 0 4px 20px rgba(15,15,15,0.05);
+        border-color: #D9D8D4;
+        box-shadow: 0 12px 32px -12px rgba(15,15,15,0.14);
+    }
+    .feat-emoji {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 44px; height: 44px;
+        background: #F5F4EF;
+        border-radius: 10px;
+        font-size: 22px;
+        margin-bottom: 14px;
     }
 
-    /* Mini preview grid cell */
+    /* ── Mini preview grid cell ── */
     .mini-cell {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 6px;
-        padding: 8px 10px;
-        font-size: 10px;
+        background: #FFFFFF;
+        border: 1px solid #E9E9E7;
+        border-radius: 8px;
+        padding: 8px 9px;
+        font-size: 10.5px;
         line-height: 1.4;
+        transition: transform .2s, box-shadow .2s;
     }
-    .mini-cell.breakfast { background: #e0f2fe; border-color: #7dd3fc; }
-    .mini-cell.lunch     { background: #fef3c7; border-color: #fcd34d; }
-    .mini-cell.dinner    { background: #e0e7ff; border-color: #a5b4fc; }
-    .mini-cell.empty     { border-style: dashed; color: #9b9a97; text-align: center; padding: 10px 4px; }
+    .mini-cell:hover { transform: translateY(-1px); box-shadow: 0 4px 10px -3px rgba(15,15,15,0.12); }
+    .mini-cell.breakfast { background: #FEF3C7; border-color: #FDE68A; }
+    .mini-cell.lunch     { background: #DBEAFE; border-color: #BFDBFE; }
+    .mini-cell.dinner    { background: #E0E7FF; border-color: #C7D2FE; }
+    .mini-cell.empty     { border-style: dashed; color: #9B9A97; text-align: center; padding: 10px 4px; }
 
-    /* Language toggle */
+    /* Staggered cell entrance */
+    .hero-card .mini-cell {
+        opacity: 0; transform: translateY(8px);
+        animation: cellIn .5s cubic-bezier(.2,.7,.2,1) forwards;
+    }
+    @keyframes cellIn { to { opacity: 1; transform: translateY(0); } }
+
+    /* ── Language toggle ── */
     html[lang="en"] .lang-ja { display: none !important; }
     html[lang="ja"] .lang-en { display: none !important; }
 
@@ -94,234 +257,301 @@ tailwind.config = {
         display: inline-flex;
         align-items: center;
         gap: 2px;
-        border: 1px solid #e5e7eb;
-        height: 30px;
+        border: 1px solid #E9E9E7;
+        height: 32px;
         padding: 0 10px;
         font-family: 'Inter', sans-serif;
-        font-size: 10px;
+        font-size: 10.5px;
         letter-spacing: 0.18em;
         text-transform: uppercase;
         cursor: pointer;
-        color: #9b9a97;
-        transition: border-color 0.2s;
-        border-radius: 4px;
+        color: #9B9A97;
+        transition: border-color .18s, background .18s;
+        border-radius: 6px;
+        background: #FFFFFF;
     }
-    .lang-toggle:hover { border-color: #37352f; }
-    .lang-tok {
-        padding: 0 4px;
-        color: #cbd5e1;
-        transition: color 0.2s;
-    }
+    .lang-toggle:hover { border-color: #37352F; background: #F7F6F3; }
+    .lang-tok { padding: 0 4px; color: #CBD5E1; transition: color .2s; }
     html[lang="en"] .lang-toggle .lang-tok[data-set-lang="en"],
     html[lang="ja"] .lang-toggle .lang-tok[data-set-lang="ja"] {
-        color: #c2410c;
+        color: #37352F;
         font-weight: 700;
     }
-    .lang-sep { color: #d1d5db; }
+    .lang-sep { color: #D1D5DB; }
 
-    /* Section heading underline */
+    /* ── Section eyebrow ── */
     .sec-eyebrow {
-        display: inline-block;
-        font-size: 10px;
-        letter-spacing: 0.3em;
-        color: #c2410c;
+        display: inline-flex; align-items: center; gap: 8px;
+        font-size: 11px;
+        letter-spacing: 0.22em;
+        color: #4A4944;
         text-transform: uppercase;
-        font-weight: 600;
-        padding-bottom: 4px;
-        border-bottom: 1px solid #c2410c;
+        font-weight: 700;
+    }
+    .sec-eyebrow::before {
+        content: '';
+        width: 6px; height: 6px; border-radius: 50%;
+        background: #E03E00;
+    }
+
+    /* ── Notion-style CTA button ── */
+    .btn-ink {
+        background: #37352F;
+        color: #FFFFFF;
+        transition: background .15s, transform .1s, box-shadow .15s;
+        box-shadow: 0 1px 2px rgba(15,15,15,0.24);
+    }
+    .btn-ink:hover {
+        background: #000000;
+        box-shadow: 0 4px 12px rgba(15,15,15,0.24);
+    }
+    .btn-ink:active { transform: translateY(1px); }
+
+    .btn-ghost {
+        background: #FFFFFF;
+        border: 1px solid #E9E9E7;
+        color: #37352F;
+        transition: background .15s, border-color .15s;
+    }
+    .btn-ghost:hover { background: #F7F6F3; border-color: #D9D8D4; }
+
+    /* ── Chip (hero meta) ── */
+    .chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 6px 10px;
+        font-size: 11.5px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        color: #4A4944;
+        background: #FFFFFF;
+        border: 1px solid #E9E9E7;
+        border-radius: 999px;
+    }
+
+    /* ── Subtle reveal on scroll ── */
+    .reveal { opacity: 0; transform: translateY(12px); transition: opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1); }
+    .reveal.on { opacity: 1; transform: translateY(0); }
+
+    @media (prefers-reduced-motion: reduce) {
+        .hero-title, .hero-tag, .hero-cta, .hero-meta, .hero-card,
+        .hero-card .mini-cell, .reveal {
+            animation: none !important; transition: none !important;
+            opacity: 1 !important; transform: none !important;
+        }
+        .sticker { animation: none !important; }  /* keep the tilt */
+        .scribble::after { transform: scaleX(1) !important; animation: none !important; }
     }
 </style>
 </head>
 
-<body class="min-h-screen">
+<body class="min-h-screen antialiased">
 
 <!-- ═══ HEADER ═══════════════════════════════════════════════════ -->
 <header class="sticky top-0 z-30 border-b border-border bg-cream/85 backdrop-blur">
-    <div class="max-w-[1120px] mx-auto px-5 sm:px-8 py-4 flex items-center justify-between gap-4">
+    <div class="max-w-[1200px] mx-auto px-5 sm:px-8 py-3.5 flex items-center justify-between gap-4">
         <a href="#top" class="flex items-center gap-2.5">
-            <svg viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"
-                 style="width:22px;height:22px;fill:#c2410c;">
-                <rect x="0" y="0" width="8" height="1"/><rect x="0" y="7" width="8" height="1"/>
-                <rect x="0" y="1" width="1" height="6"/><rect x="7" y="1" width="1" height="6"/>
-                <rect x="4" y="1" width="1" height="6"/>
-            </svg>
-            <span class="font-semibold text-base sm:text-lg tracking-wide">日めくり献立</span>
+            <span aria-hidden="true" class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-[#FFE4D6] text-base">🍱</span>
+            <span class="font-semibold text-[15px] tracking-tight">日めくり献立</span>
         </a>
-        <nav class="flex items-center gap-2 sm:gap-3 text-xs">
-            <a href="#features" class="hidden sm:inline px-2.5 py-1.5 text-sub hover:text-ink transition">
+        <nav class="flex items-center gap-1 sm:gap-2 text-[13px]">
+            <a href="#features" class="hidden sm:inline px-2.5 py-1.5 text-sub hover:text-ink transition rounded hover:bg-hover">
                 <span class="lang-en">Features</span><span class="lang-ja">特長</span>
             </a>
-            <a href="#rhythm" class="hidden sm:inline px-2.5 py-1.5 text-sub hover:text-ink transition">
+            <a href="#rhythm" class="hidden sm:inline px-2.5 py-1.5 text-sub hover:text-ink transition rounded hover:bg-hover">
                 <span class="lang-en">Rhythm</span><span class="lang-ja">リズム</span>
             </a>
-            <a href="./README.md" class="hidden md:inline px-2.5 py-1.5 text-sub hover:text-ink transition">README</a>
-            <div class="lang-toggle" id="langToggle" role="group" aria-label="switch language">
+            <a href="./README.md" class="hidden md:inline px-2.5 py-1.5 text-sub hover:text-ink transition rounded hover:bg-hover">README</a>
+            <div class="lang-toggle ml-1" id="langToggle" role="group" aria-label="switch language">
                 <span class="lang-tok" data-set-lang="en">EN</span>
                 <span class="lang-sep">·</span>
                 <span class="lang-tok" data-set-lang="ja">JP</span>
             </div>
             <a href="./app.html"
-               class="px-3 sm:px-4 py-1.5 text-xs sm:text-sm bg-ink text-white rounded-md hover:opacity-90 transition whitespace-nowrap font-medium">
-                <span class="lang-en">Open app →</span>
-                <span class="lang-ja">アプリを開く →</span>
+               class="btn-ink px-3.5 sm:px-4 py-2 text-[13px] rounded-md whitespace-nowrap font-medium inline-flex items-center gap-1.5">
+                <span class="lang-en">Open app</span>
+                <span class="lang-ja">アプリを開く</span>
+                <span aria-hidden="true">→</span>
             </a>
         </nav>
     </div>
 </header>
 
 <!-- ═══ HERO ═════════════════════════════════════════════════════ -->
-<section id="top" class="max-w-[1120px] mx-auto px-5 sm:px-8 pt-14 sm:pt-24 pb-16 sm:pb-24">
-    <div class="grid lg:grid-cols-[1fr_0.9fr] gap-10 lg:gap-16 items-center">
+<section id="top" class="relative overflow-hidden">
+    <div class="hero-bg" aria-hidden="true"></div>
 
-        <div>
-            <div class="sec-eyebrow hero-title">
-                <span class="lang-en">Local-first · Weekly rhythm</span>
-                <span class="lang-ja">ローカル完結 · 一週間のリズム</span>
-            </div>
+    <!-- Confetti dots -->
+    <span class="confetti a" style="top:18%;left:8%;"></span>
+    <span class="confetti b" style="top:9%;left:52%;"></span>
+    <span class="confetti c" style="top:44%;left:4%;"></span>
+    <span class="confetti d" style="top:68%;left:42%;"></span>
+    <span class="confetti a" style="top:72%;left:96%;"></span>
+    <span class="confetti b" style="top:30%;left:93%;"></span>
 
-            <h1 class="hero-title text-[32px] sm:text-[44px] lg:text-[56px] leading-[1.15] font-bold tracking-tight mt-5 mb-6 flex items-start gap-3">
-                <svg viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"
-                     style="width:0.9em;height:0.9em;fill:#c2410c;flex-shrink:0;margin-top:0.12em;">
-                    <rect x="0" y="0" width="8" height="1"/><rect x="0" y="7" width="8" height="1"/>
-                    <rect x="0" y="1" width="1" height="6"/><rect x="7" y="1" width="1" height="6"/>
-                    <rect x="4" y="1" width="1" height="6"/>
-                </svg>
-                <span>
-                    <span class="lang-en">
+    <div class="relative max-w-[1200px] mx-auto px-5 sm:px-8 pt-14 sm:pt-28 pb-20 sm:pb-32">
+        <div class="grid lg:grid-cols-[1.05fr_1fr] gap-12 lg:gap-20 items-center">
+
+            <!-- ── LEFT: Text ── -->
+            <div class="relative z-10">
+                <div class="hero-title sec-eyebrow mb-6">
+                    <span class="lang-en">Local-first · Weekly rhythm</span>
+                    <span class="lang-ja">ローカル完結 · 一週間のリズム</span>
+                </div>
+
+                <h1 class="hero-title display-jp text-[40px] sm:text-[58px] lg:text-[76px] mb-7">
+                    <span class="lang-en display">
                         Stop deciding.<br>
-                        <span class="text-accent">Start cooking.</span>
+                        <span class="scribble text-accent">Start cooking.</span>
                     </span>
                     <span class="lang-ja">
-                        「今日なにする？」を<br>
-                        <span class="text-accent">もう考えない。</span>
+                        「今日なにする？」<br>
+                        <span class="scribble text-accent">もう考えない。</span>
                     </span>
-                </span>
-            </h1>
+                </h1>
 
-            <p class="hero-tag text-sub text-base sm:text-lg leading-relaxed mb-8 max-w-xl">
-                <span class="lang-en">
-                    🌅 朝 · ☀️ 昼 · 🌙 夜 — a local-first weekly menu app.<br>
-                    Build a meal from multiple dishes (主食 · 主菜 · 副菜 · 汁物).
-                    Save your go-to weeks, and let 💡 <em>inspiration</em> rescue you
-                    from repetition. No account. No cloud. Just your kitchen.
-                </span>
-                <span class="lang-ja">
-                    🌅 朝 · ☀️ 昼 · 🌙 夜 — お気に入りを中心に、<br>
-                    主食・主菜・副菜・汁物と、一食ずつ献立を組み立てるローカル完結型アプリ。
-                    家族の定番を保存して、マンネリ打破には 💡 <em>ひらめき</em> 機能。
-                    アカウント不要、クラウド不要、あなたのブラウザ内で完結。
-                </span>
-            </p>
+                <p class="hero-tag text-sub text-[15px] sm:text-[17px] leading-[1.85] mb-9 max-w-[560px]">
+                    <span class="lang-en">
+                        🌅 朝 · ☀️ 昼 · 🌙 夜 — build each meal from multiple dishes.
+                        Save your favorite weeks, and let 💡 <em>inspiration</em> rescue you from repetition.
+                        No account, no cloud — just your kitchen.
+                    </span>
+                    <span class="lang-ja">
+                        🌅 朝 · ☀️ 昼 · 🌙 夜 —— お気に入りを中心に、
+                        主食・主菜・副菜・汁物で一食ずつ組み立てる。
+                        うまくいった週を保存して、マンネリには 💡 <em>ひらめき</em>。
+                        アカウントもクラウドも要らない、あなたの台所のための道具です。
+                    </span>
+                </p>
 
-            <div class="hero-cta flex flex-wrap gap-3 items-center">
-                <a href="./app.html"
-                   class="inline-flex items-center gap-2 px-5 py-3 bg-ink text-white rounded-md hover:opacity-90 transition text-sm font-medium">
-                    <span class="lang-en">Open the app</span>
-                    <span class="lang-ja">アプリを開く</span>
-                    <span aria-hidden="true">→</span>
-                </a>
-                <a href="#features"
-                   class="inline-flex items-center gap-2 px-5 py-3 text-sm text-sub hover:text-ink transition">
-                    <span class="lang-en">How it works</span>
-                    <span class="lang-ja">できること</span>
-                </a>
-            </div>
-
-            <div class="mt-10 flex flex-wrap gap-x-6 gap-y-2 text-[11px] text-muted tracking-wider uppercase">
-                <span class="lang-en">🔒 No login</span>
-                <span class="lang-ja">🔒 ログイン不要</span>
-                <span class="lang-en">☁️ No server</span>
-                <span class="lang-ja">☁️ サーバーなし</span>
-                <span class="lang-en">📄 One HTML file</span>
-                <span class="lang-ja">📄 一枚の HTML</span>
-                <span class="lang-en">💾 localStorage only</span>
-                <span class="lang-ja">💾 データはブラウザ内</span>
-            </div>
-        </div>
-
-        <!-- Mini weekly-grid preview card (3 meals per day) -->
-        <div class="hero-card">
-            <div class="border border-border rounded-xl bg-white shadow-sm overflow-hidden">
-                <div class="px-4 py-3 border-b border-border flex items-center justify-between bg-cream/60">
-                    <span class="text-[10px] tracking-widest text-muted uppercase">🗓 This week</span>
-                    <span class="text-[10px] tracking-wider text-muted">🌅 朝 · ☀️ 昼 · 🌙 夜</span>
+                <div class="hero-cta flex flex-wrap gap-3 items-center mb-10">
+                    <a href="./app.html"
+                       class="btn-ink inline-flex items-center gap-2 px-6 py-3.5 rounded-lg text-[14.5px] font-medium">
+                        <span aria-hidden="true">🍚</span>
+                        <span class="lang-en">Open the app</span>
+                        <span class="lang-ja">アプリを開く</span>
+                        <span aria-hidden="true">→</span>
+                    </a>
+                    <a href="#features"
+                       class="btn-ghost inline-flex items-center gap-2 px-5 py-3.5 rounded-lg text-[14.5px] font-medium">
+                        <span class="lang-en">How it works</span>
+                        <span class="lang-ja">できること</span>
+                    </a>
                 </div>
-                <div class="p-3 sm:p-4">
-                    <div class="grid grid-cols-7 gap-1.5">
-                        <!-- Monday -->
-                        <div class="space-y-1">
-                            <div class="text-[10px] text-center text-sub font-medium py-1 border-b border-border">月</div>
-                            <div class="mini-cell breakfast">🍞<br>トースト</div>
-                            <div class="mini-cell lunch">🐖<br>生姜焼き</div>
-                            <div class="mini-cell dinner">🍳<br>オムライス</div>
+
+                <div class="hero-meta flex flex-wrap gap-2">
+                    <span class="chip"><span>🔒</span><span class="lang-en">No login</span><span class="lang-ja">ログイン不要</span></span>
+                    <span class="chip"><span>☁️</span><span class="lang-en">No server</span><span class="lang-ja">サーバーなし</span></span>
+                    <span class="chip"><span>📄</span><span class="lang-en">One HTML file</span><span class="lang-ja">一枚のHTML</span></span>
+                    <span class="chip"><span>💾</span><span class="lang-en">Browser-local</span><span class="lang-ja">ブラウザ内で完結</span></span>
+                </div>
+            </div>
+
+            <!-- ── RIGHT: Preview card + floating stickers ── -->
+            <div class="relative hero-card min-h-[480px]">
+                <!-- Floating emoji stickers -->
+                <span class="sticker sticker-1 lg" aria-hidden="true">🍳</span>
+                <span class="sticker sticker-2"     aria-hidden="true">🍙</span>
+                <span class="sticker sticker-3 sm"  aria-hidden="true">🥗</span>
+                <span class="sticker sticker-4"     aria-hidden="true">🍜</span>
+                <span class="sticker sticker-5 sm"  aria-hidden="true">🍛</span>
+                <span class="sticker sticker-6 lg"  aria-hidden="true">🫕</span>
+
+                <!-- Preview card (tilted slightly) -->
+                <div class="relative bg-white border border-border rounded-2xl shadow-lift overflow-hidden"
+                     style="transform: rotate(-1.4deg);">
+                    <div class="px-5 py-3.5 border-b border-border flex items-center justify-between bg-cream">
+                        <div class="flex items-center gap-2">
+                            <span aria-hidden="true">🗓</span>
+                            <span class="text-[11px] tracking-wider text-sub uppercase font-semibold">This week · 今週</span>
                         </div>
-                        <!-- Tuesday -->
-                        <div class="space-y-1">
-                            <div class="text-[10px] text-center text-sub font-medium py-1 border-b border-border">火</div>
-                            <div class="mini-cell breakfast">🥣<br>ごはん</div>
-                            <div class="mini-cell lunch">🍚<br>親子丼</div>
-                            <div class="mini-cell dinner">🥔<br>肉じゃが</div>
-                        </div>
-                        <!-- Wednesday -->
-                        <div class="space-y-1">
-                            <div class="text-[10px] text-center text-sub font-medium py-1 border-b border-border">水</div>
-                            <div class="mini-cell breakfast empty">+</div>
-                            <div class="mini-cell lunch">🍛<br>カレー</div>
-                            <div class="mini-cell dinner">🐟<br>鮭塩焼き</div>
-                        </div>
-                        <!-- Thursday -->
-                        <div class="space-y-1">
-                            <div class="text-[10px] text-center text-sub font-medium py-1 border-b border-border">木</div>
-                            <div class="mini-cell breakfast">🥐<br>クロワ</div>
-                            <div class="mini-cell lunch">🍗<br>照り焼き</div>
-                            <div class="mini-cell dinner empty">+</div>
-                        </div>
-                        <!-- Friday -->
-                        <div class="space-y-1">
-                            <div class="text-[10px] text-center text-sub font-medium py-1 border-b border-border">金</div>
-                            <div class="mini-cell breakfast">🥣<br>おにぎり</div>
-                            <div class="mini-cell lunch empty">+</div>
-                            <div class="mini-cell dinner">🍖<br>ハンバーグ</div>
-                        </div>
-                        <!-- Saturday -->
-                        <div class="space-y-1">
-                            <div class="text-[10px] text-center text-sub font-medium py-1 border-b border-border">土</div>
-                            <div class="mini-cell breakfast">🥞<br>パンケーキ</div>
-                            <div class="mini-cell lunch">🍱<br>お弁当</div>
-                            <div class="mini-cell dinner">🫕<br>シチュー</div>
-                        </div>
-                        <!-- Sunday -->
-                        <div class="space-y-1">
-                            <div class="text-[10px] text-center text-sub font-medium py-1 border-b border-border">日</div>
-                            <div class="mini-cell breakfast">☕<br>朝食セット</div>
-                            <div class="mini-cell lunch">🍲<br>そぼろ丼</div>
-                            <div class="mini-cell dinner">🥩<br>豚バラ大根</div>
+                        <span class="text-[10.5px] tracking-wider text-muted">🌅 · ☀️ · 🌙</span>
+                    </div>
+                    <div class="p-4">
+                        <div class="grid grid-cols-7 gap-1.5">
+                            <!-- Monday -->
+                            <div class="space-y-1.5">
+                                <div class="text-[10px] text-center text-sub font-semibold py-1 rounded bg-cream-deep">月</div>
+                                <div class="mini-cell breakfast" style="animation-delay:.3s">🍞<br>トースト</div>
+                                <div class="mini-cell lunch"     style="animation-delay:.5s">🐖<br>生姜焼き</div>
+                                <div class="mini-cell dinner"    style="animation-delay:.7s">🍳<br>オムライス</div>
+                            </div>
+                            <!-- Tuesday -->
+                            <div class="space-y-1.5">
+                                <div class="text-[10px] text-center text-sub font-semibold py-1 rounded bg-cream-deep">火</div>
+                                <div class="mini-cell breakfast" style="animation-delay:.35s">🥣<br>ごはん</div>
+                                <div class="mini-cell lunch"     style="animation-delay:.55s">🍚<br>親子丼</div>
+                                <div class="mini-cell dinner"    style="animation-delay:.75s">🥔<br>肉じゃが</div>
+                            </div>
+                            <!-- Wednesday -->
+                            <div class="space-y-1.5">
+                                <div class="text-[10px] text-center text-sub font-semibold py-1 rounded bg-cream-deep">水</div>
+                                <div class="mini-cell breakfast empty" style="animation-delay:.4s">+</div>
+                                <div class="mini-cell lunch"            style="animation-delay:.6s">🍛<br>カレー</div>
+                                <div class="mini-cell dinner"           style="animation-delay:.8s">🐟<br>鮭塩焼き</div>
+                            </div>
+                            <!-- Thursday -->
+                            <div class="space-y-1.5">
+                                <div class="text-[10px] text-center text-sub font-semibold py-1 rounded bg-cream-deep">木</div>
+                                <div class="mini-cell breakfast" style="animation-delay:.45s">🥐<br>クロワ</div>
+                                <div class="mini-cell lunch"     style="animation-delay:.65s">🍗<br>照り焼き</div>
+                                <div class="mini-cell dinner empty" style="animation-delay:.85s">+</div>
+                            </div>
+                            <!-- Friday -->
+                            <div class="space-y-1.5">
+                                <div class="text-[10px] text-center text-sub font-semibold py-1 rounded bg-cream-deep">金</div>
+                                <div class="mini-cell breakfast" style="animation-delay:.5s">🥣<br>おにぎり</div>
+                                <div class="mini-cell lunch empty" style="animation-delay:.7s">+</div>
+                                <div class="mini-cell dinner"    style="animation-delay:.9s">🍖<br>ハンバーグ</div>
+                            </div>
+                            <!-- Saturday -->
+                            <div class="space-y-1.5">
+                                <div class="text-[10px] text-center text-sub font-semibold py-1 rounded bg-cream-deep">土</div>
+                                <div class="mini-cell breakfast" style="animation-delay:.55s">🥞<br>パンケーキ</div>
+                                <div class="mini-cell lunch"     style="animation-delay:.75s">🍱<br>お弁当</div>
+                                <div class="mini-cell dinner"    style="animation-delay:.95s">🫕<br>シチュー</div>
+                            </div>
+                            <!-- Sunday -->
+                            <div class="space-y-1.5">
+                                <div class="text-[10px] text-center text-sub font-semibold py-1 rounded bg-cream-deep">日</div>
+                                <div class="mini-cell breakfast" style="animation-delay:.6s">☕<br>朝食セット</div>
+                                <div class="mini-cell lunch"     style="animation-delay:.8s">🍲<br>そぼろ丼</div>
+                                <div class="mini-cell dinner"    style="animation-delay:1s">🥩<br>豚バラ大根</div>
+                            </div>
                         </div>
                     </div>
+                    <div class="px-5 py-3 border-t border-border bg-accent-soft/40 flex items-center gap-2.5 text-[12px] text-ink">
+                        <span aria-hidden="true">💡</span>
+                        <span class="lang-en">Tap any slot — build the meal from multiple dishes.</span>
+                        <span class="lang-ja">枠をタップ → 主食・主菜・副菜・汁物と組み立て。</span>
+                    </div>
                 </div>
-                <div class="px-4 py-2.5 border-t border-border bg-orange-50/40 flex items-center gap-2 text-[11px] text-sub">
-                    💡 <span class="lang-en">Tap any slot — build the meal from multiple dishes.</span>
-                    <span class="lang-ja">枠をタップ → 主食・主菜・副菜・汁物と組み立て。</span>
+
+                <!-- "21 meals" floating badge -->
+                <div class="hidden sm:flex absolute -top-4 -left-6 lg:-left-12 z-20 items-center gap-2 bg-ink text-white px-4 py-2 rounded-full text-[12px] font-semibold shadow-sticker"
+                     style="transform: rotate(-6deg);">
+                    <span aria-hidden="true">✨</span>
+                    <span class="lang-en">21 meals / week</span>
+                    <span class="lang-ja">21食 / 週</span>
                 </div>
             </div>
-        </div>
 
+        </div>
     </div>
 </section>
 
 <!-- ═══ FEATURES ═════════════════════════════════════════════════ -->
-<section id="features" class="border-t border-border bg-white/70">
-    <div class="max-w-[1120px] mx-auto px-5 sm:px-8 py-16 sm:py-24">
-        <div class="max-w-2xl mb-12">
+<section id="features" class="border-t border-border bg-paper">
+    <div class="max-w-[1200px] mx-auto px-5 sm:px-8 py-20 sm:py-32">
+        <div class="reveal max-w-2xl mb-14">
             <span class="sec-eyebrow">
                 <span class="lang-en">Section 01 · Features</span>
                 <span class="lang-ja">01 · 特長</span>
             </span>
-            <h2 class="text-[26px] sm:text-[36px] font-bold tracking-tight mt-4 mb-4">
-                <span class="lang-en">Five things. No more.</span>
-                <span class="lang-ja">ちょうどいい、<br class="sm:hidden">5 つの道具。</span>
+            <h2 class="display-jp text-[30px] sm:text-[44px] mt-5 mb-5">
+                <span class="lang-en">Just enough, not more.</span>
+                <span class="lang-ja">ちょうどいい、<br class="sm:hidden">台所の道具。</span>
             </h2>
-            <p class="text-sub leading-relaxed">
+            <p class="text-sub text-[15px] sm:text-[16.5px] leading-[1.85]">
                 <span class="lang-en">
                     Every feature pulls its weight. Nothing ornamental.
                 </span>
@@ -331,10 +561,10 @@ tailwind.config = {
             </p>
         </div>
 
-        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            <div class="feat border border-border rounded-xl p-6 bg-white">
-                <div class="text-3xl mb-3">📚</div>
-                <h3 class="font-semibold text-[15px] mb-2">
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 reveal">
+            <div class="feat border border-border rounded-2xl p-7 bg-white">
+                <div class="feat-emoji">📚</div>
+                <h3 class="font-bold text-[16px] mb-2 tracking-tight">
                     <span class="lang-en">Recipe catalog (40 · 作り方付き)</span>
                     <span class="lang-ja">レシピカタログ（40品）</span>
                 </h3>
@@ -348,9 +578,9 @@ tailwind.config = {
                 </p>
             </div>
 
-            <div class="feat border border-border rounded-xl p-6 bg-white">
-                <div class="text-3xl mb-3">⭐</div>
-                <h3 class="font-semibold text-[15px] mb-2">
+            <div class="feat border border-border rounded-2xl p-7 bg-white">
+                <div class="feat-emoji">⭐</div>
+                <h3 class="font-bold text-[16px] mb-2 tracking-tight">
                     <span class="lang-en">Favorites · ★</span>
                     <span class="lang-ja">お気に入り ★</span>
                 </h3>
@@ -365,9 +595,9 @@ tailwind.config = {
                 </p>
             </div>
 
-            <div class="feat border border-border rounded-xl p-6 bg-white">
-                <div class="text-3xl mb-3">📅</div>
-                <h3 class="font-semibold text-[15px] mb-2">
+            <div class="feat border border-border rounded-2xl p-7 bg-white">
+                <div class="feat-emoji">📅</div>
+                <h3 class="font-bold text-[16px] mb-2 tracking-tight">
                     <span class="lang-en">21 meal slots · 🌅 ☀️ 🌙</span>
                     <span class="lang-ja">朝昼夜 × 7日 = 21枠</span>
                 </h3>
@@ -381,9 +611,9 @@ tailwind.config = {
                 </p>
             </div>
 
-            <div class="feat border border-border rounded-xl p-6 bg-white">
-                <div class="text-3xl mb-3">🍳</div>
-                <h3 class="font-semibold text-[15px] mb-2">
+            <div class="feat border border-border rounded-2xl p-7 bg-white">
+                <div class="feat-emoji">🍳</div>
+                <h3 class="font-bold text-[16px] mb-2 tracking-tight">
                     <span class="lang-en">Ingredients + steps 📖</span>
                     <span class="lang-ja">材料と作り方 📖</span>
                 </h3>
@@ -397,9 +627,9 @@ tailwind.config = {
                 </p>
             </div>
 
-            <div class="feat border border-border rounded-xl p-6 bg-white">
-                <div class="text-3xl mb-3">💾</div>
-                <h3 class="font-semibold text-[15px] mb-2">
+            <div class="feat border border-border rounded-2xl p-7 bg-white">
+                <div class="feat-emoji">💾</div>
+                <h3 class="font-bold text-[16px] mb-2 tracking-tight">
                     <span class="lang-en">Save weekly sets 📦</span>
                     <span class="lang-ja">週セットを保存 📦</span>
                 </h3>
@@ -415,9 +645,9 @@ tailwind.config = {
                 </p>
             </div>
 
-            <div class="feat border border-border rounded-xl p-6 bg-white">
-                <div class="text-3xl mb-3">💡</div>
-                <h3 class="font-semibold text-[15px] mb-2">
+            <div class="feat border border-border rounded-2xl p-7 bg-white">
+                <div class="feat-emoji">💡</div>
+                <h3 class="font-bold text-[16px] mb-2 tracking-tight">
                     <span class="lang-en">Inspiration · 家族に合わせて</span>
                     <span class="lang-ja">ひらめき · 家族に合わせて</span>
                 </h3>
@@ -431,9 +661,9 @@ tailwind.config = {
                 </p>
             </div>
 
-            <div class="feat border border-border rounded-xl p-6 bg-white">
-                <div class="text-3xl mb-3">👨‍👩‍👧</div>
-                <h3 class="font-semibold text-[15px] mb-2">
+            <div class="feat border border-border rounded-2xl p-7 bg-white">
+                <div class="feat-emoji">👨‍👩‍👧</div>
+                <h3 class="font-bold text-[16px] mb-2 tracking-tight">
                     <span class="lang-en">Family profile</span>
                     <span class="lang-ja">家族プロフィール</span>
                 </h3>
@@ -447,9 +677,9 @@ tailwind.config = {
                 </p>
             </div>
 
-            <div class="feat border border-border rounded-xl p-6 bg-white">
-                <div class="text-3xl mb-3">📱</div>
-                <h3 class="font-semibold text-[15px] mb-2">
+            <div class="feat border border-border rounded-2xl p-7 bg-white">
+                <div class="feat-emoji">📱</div>
+                <h3 class="font-bold text-[16px] mb-2 tracking-tight">
                     <span class="lang-en">Mobile-first</span>
                     <span class="lang-ja">スマホで使える</span>
                 </h3>
@@ -463,9 +693,9 @@ tailwind.config = {
                 </p>
             </div>
 
-            <div class="feat border border-border rounded-xl p-6 bg-white">
-                <div class="text-3xl mb-3">🔒</div>
-                <h3 class="font-semibold text-[15px] mb-2">
+            <div class="feat border border-border rounded-2xl p-7 bg-white">
+                <div class="feat-emoji">🔒</div>
+                <h3 class="font-bold text-[16px] mb-2 tracking-tight">
                     <span class="lang-en">Local-first 🏠</span>
                     <span class="lang-ja">ローカル完結 🏠</span>
                 </h3>
@@ -485,20 +715,20 @@ tailwind.config = {
 </section>
 
 <!-- ═══ RHYTHM SECTION ═══════════════════════════════════════════ -->
-<section id="rhythm" class="border-t border-border">
-    <div class="max-w-[1120px] mx-auto px-5 sm:px-8 py-16 sm:py-24">
-        <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-start">
+<section id="rhythm" class="border-t border-border bg-cream">
+    <div class="max-w-[1200px] mx-auto px-5 sm:px-8 py-20 sm:py-32">
+        <div class="grid lg:grid-cols-[0.95fr_1fr] gap-12 lg:gap-20 items-start">
 
-            <div>
+            <div class="reveal">
                 <span class="sec-eyebrow">
                     <span class="lang-en">Section 02 · Rhythm</span>
                     <span class="lang-ja">02 · リズム</span>
                 </span>
-                <h2 class="text-[26px] sm:text-[36px] font-bold tracking-tight mt-4 mb-6">
+                <h2 class="display-jp text-[30px] sm:text-[44px] mt-5 mb-7">
                     <span class="lang-en">🥢 A kitchen with repeats.</span>
-                    <span class="lang-ja">🥢 繰り返せる台所。</span>
+                    <span class="lang-ja">🥢 繰り返せる、台所。</span>
                 </h2>
-                <div class="text-sub leading-relaxed space-y-4">
+                <div class="text-sub text-[15px] sm:text-[16.5px] leading-[1.9] space-y-5">
                     <p class="lang-en">
                         Most days, you don't need a new recipe. You need the same
                         eight or ten dishes, rearranged in a rhythm that fits this week.
@@ -519,48 +749,48 @@ tailwind.config = {
                 </div>
             </div>
 
-            <div class="border border-border rounded-xl p-6 sm:p-8 bg-white">
-                <h3 class="text-sm font-semibold tracking-wider text-muted uppercase mb-4">
+            <div class="reveal border border-border rounded-2xl p-7 sm:p-9 bg-white shadow-notion">
+                <h3 class="kicker uppercase text-ink-soft mb-6">
                     <span class="lang-en">Flow · 3 steps</span>
                     <span class="lang-ja">フロー · 3 ステップ</span>
                 </h3>
-                <ol class="space-y-5">
-                    <li class="flex gap-4">
-                        <div class="w-8 h-8 bg-ink text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0">1</div>
-                        <div>
-                            <h4 class="font-semibold text-[14px] mb-1">
-                                <span class="lang-en">Star what you love</span>
-                                <span class="lang-ja">好きなものに ★</span>
+                <ol class="space-y-7">
+                    <li class="flex gap-5 items-start">
+                        <div class="w-9 h-9 bg-ink text-white rounded-xl flex items-center justify-center text-[13px] font-bold shrink-0">1</div>
+                        <div class="pt-1">
+                            <h4 class="font-bold text-[15.5px] mb-1.5 tracking-tight">
+                                <span class="lang-en">Star what you love ⭐</span>
+                                <span class="lang-ja">好きなものに ⭐</span>
                             </h4>
-                            <p class="text-sm text-sub">
-                                <span class="lang-en">Browse 20 simple Japanese dishes. Tap ★ on the ones your family returns to.</span>
-                                <span class="lang-ja">20 品のシンプル和食から、家族が繰り返し食べるものに ★ を。</span>
+                            <p class="text-[14px] text-sub leading-[1.8]">
+                                <span class="lang-en">Browse 40 simple Japanese dishes. Tap ⭐ on the ones your family returns to.</span>
+                                <span class="lang-ja">40品のシンプル和食から、家族が繰り返し食べるものに ⭐ を。</span>
                             </p>
                         </div>
                     </li>
-                    <li class="flex gap-4">
-                        <div class="w-8 h-8 bg-ink text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0">2</div>
-                        <div>
-                            <h4 class="font-semibold text-[14px] mb-1">
-                                <span class="lang-en">Fill the week</span>
-                                <span class="lang-ja">一週間を埋める</span>
+                    <li class="flex gap-5 items-start">
+                        <div class="w-9 h-9 bg-ink text-white rounded-xl flex items-center justify-center text-[13px] font-bold shrink-0">2</div>
+                        <div class="pt-1">
+                            <h4 class="font-bold text-[15.5px] mb-1.5 tracking-tight">
+                                <span class="lang-en">Fill the week 🗓</span>
+                                <span class="lang-ja">一週間を埋める 🗓</span>
                             </h4>
-                            <p class="text-sm text-sub">
-                                <span class="lang-en">Tap a slot. Pick from favorites. Repeat fourteen times — or skip some.</span>
-                                <span class="lang-ja">枠をタップ、お気に入りから選ぶ。これを 14 回、あるいは好きなだけ。</span>
+                            <p class="text-[14px] text-sub leading-[1.8]">
+                                <span class="lang-en">Tap a slot. Build the meal from 主食・主菜・副菜・汁物. Repeat — or leave blank.</span>
+                                <span class="lang-ja">枠をタップ、主食・主菜・副菜・汁物で組み立てる。無理せず、空欄でもいい。</span>
                             </p>
                         </div>
                     </li>
-                    <li class="flex gap-4">
-                        <div class="w-8 h-8 bg-ink text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0">3</div>
-                        <div>
-                            <h4 class="font-semibold text-[14px] mb-1">
-                                <span class="lang-en">Save the rhythm</span>
-                                <span class="lang-ja">リズムを保存</span>
+                    <li class="flex gap-5 items-start">
+                        <div class="w-9 h-9 bg-ink text-white rounded-xl flex items-center justify-center text-[13px] font-bold shrink-0">3</div>
+                        <div class="pt-1">
+                            <h4 class="font-bold text-[15.5px] mb-1.5 tracking-tight">
+                                <span class="lang-en">Save the rhythm 💾</span>
+                                <span class="lang-ja">リズムを保存 💾</span>
                             </h4>
-                            <p class="text-sm text-sub">
-                                <span class="lang-en">Name the week. Call it back next month. Let past-you plan for future-you.</span>
-                                <span class="lang-ja">名前を付けて保存。来月また呼び出せば、過去の自分が未来の献立を決めてくれる。</span>
+                            <p class="text-[14px] text-sub leading-[1.8]">
+                                <span class="lang-en">Name the week. Call it back next month. Past-you plans for future-you.</span>
+                                <span class="lang-ja">名前を付けて保存。来月呼び戻せば、過去の自分が未来の献立を決めてくれる。</span>
                             </p>
                         </div>
                     </li>
@@ -572,26 +802,24 @@ tailwind.config = {
 </section>
 
 <!-- ═══ CTA STRIP ═══════════════════════════════════════════════ -->
-<section class="border-t border-border bg-ink text-white">
-    <div class="max-w-[1120px] mx-auto px-5 sm:px-8 py-14 sm:py-20 text-center">
-        <h2 class="text-[24px] sm:text-[34px] font-bold tracking-tight mb-3 flex items-center justify-center gap-3">
-            <svg viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"
-                 style="width:0.9em;height:0.9em;fill:#ffffff;flex-shrink:0;">
-                <rect x="0" y="0" width="8" height="1"/><rect x="0" y="7" width="8" height="1"/>
-                <rect x="0" y="1" width="1" height="6"/><rect x="7" y="1" width="1" height="6"/>
-                <rect x="4" y="1" width="1" height="6"/>
-            </svg>
-            <span>
-                <span class="lang-en">Your kitchen, on repeat.</span>
-                <span class="lang-ja">あなたの台所を、リズムで。</span>
-            </span>
+<section class="relative border-t border-border bg-ink text-white overflow-hidden">
+    <!-- subtle stickers on dark strip -->
+    <span class="absolute top-6 left-[12%] text-4xl opacity-90" style="transform: rotate(-10deg);" aria-hidden="true">🍚</span>
+    <span class="absolute bottom-8 right-[10%] text-4xl opacity-90" style="transform: rotate(14deg);" aria-hidden="true">🍱</span>
+    <span class="absolute top-[38%] right-[18%] text-2xl opacity-70" style="transform: rotate(-6deg);" aria-hidden="true">✨</span>
+
+    <div class="relative max-w-[1200px] mx-auto px-5 sm:px-8 py-20 sm:py-28 text-center">
+        <h2 class="display-jp text-[28px] sm:text-[40px] mb-4">
+            <span class="lang-en">Your kitchen, on repeat.</span>
+            <span class="lang-ja">あなたの台所を、<br class="sm:hidden">リズムで。</span>
         </h2>
-        <p class="text-white/70 text-base mb-8 max-w-xl mx-auto">
+        <p class="text-white/70 text-[14.5px] sm:text-[16px] leading-[1.85] mb-9 max-w-xl mx-auto">
             <span class="lang-en">📱 No install. 🔒 No signup. ✨ Open it and start this week.</span>
-            <span class="lang-ja">📱 インストール不要、🔒 登録不要。✨ 開いて、今週から始める。</span>
+            <span class="lang-ja">📱 インストール不要・🔒 登録不要。✨ 開いて、今週から始める。</span>
         </p>
         <a href="./app.html"
-           class="inline-flex items-center gap-2 px-6 py-3 bg-white text-ink rounded-md hover:bg-cream transition text-sm font-semibold">
+           class="inline-flex items-center gap-2 px-7 py-4 bg-white text-ink rounded-lg hover:bg-cream transition text-[15px] font-semibold shadow-lift">
+            <span aria-hidden="true">🍚</span>
             <span class="lang-en">Open the app</span>
             <span class="lang-ja">アプリを開く</span>
             <span aria-hidden="true">→</span>
@@ -601,10 +829,10 @@ tailwind.config = {
 
 <!-- ═══ FOOTER ═══════════════════════════════════════════════════ -->
 <footer class="border-t border-border bg-cream">
-    <div class="max-w-[1120px] mx-auto px-5 sm:px-8 py-8 flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 text-[11px] tracking-wider text-muted uppercase">
-        <div>
-            <span class="lang-en">◼ 日めくり献立 · kinoshita studio · 2026</span>
-            <span class="lang-ja">◼ 日めくり献立 · kinoshita studio · 2026</span>
+    <div class="max-w-[1200px] mx-auto px-5 sm:px-8 py-10 flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 text-[11.5px] tracking-wider text-muted uppercase">
+        <div class="flex items-center gap-2">
+            <span aria-hidden="true">🍱</span>
+            <span>日めくり献立 · kinoshita studio · 2026</span>
         </div>
         <div class="flex gap-4">
             <a href="./app.html" class="hover:text-ink transition">
@@ -643,6 +871,24 @@ document.getElementById('langToggle')?.addEventListener('click', (e) => {
     if (e.target.matches('.lang-tok')) return;
     setLang(currentLang() === 'en' ? 'ja' : 'en');
 });
+
+// ── Scroll reveal ───────────────────────────────────────────────
+const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (reduce) {
+    document.querySelectorAll('.reveal').forEach(el => el.classList.add('on'));
+} else if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+            if (e.isIntersecting) {
+                e.target.classList.add('on');
+                io.unobserve(e.target);
+            }
+        });
+    }, { threshold: 0.08 });
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+} else {
+    document.querySelectorAll('.reveal').forEach(el => el.classList.add('on'));
+}
 </script>
 </body>
 </html>

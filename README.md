@@ -32,7 +32,7 @@ open app.html       # アプリ本体
 ## 構成（2 ファイル）
 
 ```
-mekuri_kondate/
+himekuri_kondate/
 ├── index.html     ← プロダクト紹介ページ（ランディング）
 ├── app.html       ← アプリ本体（週間献立 + カタログ + お気に入り）
 ├── og-image.svg   ← OGP 画像（1200×630）

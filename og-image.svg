@@ -11,10 +11,14 @@
   <rect width="1200" height="630" fill="#fdfcf9"/>
   <rect width="1200" height="630" fill="url(#gridBg)"/>
 
-  <!-- ═══ Massive bento emoji (left) ═══ -->
-  <text x="110" y="375" font-size="300" text-anchor="middle"
-        font-family="'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif"
-        dominant-baseline="alphabetic">🍱</text>
+  <!-- ═══ 8×8 pixel bento mark — scaled up. Brand accent on cream ground. ═══ -->
+  <svg x="40" y="180" width="280" height="280" viewBox="0 0 8 8" shape-rendering="crispEdges">
+    <rect x="0" y="0" width="8" height="1" fill="#c2410c"/>
+    <rect x="0" y="7" width="8" height="1" fill="#c2410c"/>
+    <rect x="0" y="1" width="1" height="6" fill="#c2410c"/>
+    <rect x="7" y="1" width="1" height="6" fill="#c2410c"/>
+    <rect x="4" y="1" width="1" height="6" fill="#c2410c"/>
+  </svg>
 
   <!-- ═══ Top eyebrow ═══ -->
   <text x="260" y="88" font-family="'Noto Sans JP', sans-serif" font-size="15" letter-spacing="6" fill="#c2410c" font-weight="600">
