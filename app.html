@@ -1506,7 +1506,7 @@ tailwind.config = {
                 <h2 class="flex-1">お気に入り</h2>
                 <span id="favCount" class="text-[10px] text-muted tracking-wider"></span>
             </div>
-            <div id="favList" class="space-y-1 max-h-[460px] overflow-y-auto scroll-fine"></div>
+            <div id="favList" class="space-y-1 max-h-[260px] lg:max-h-[460px] overflow-y-auto scroll-fine"></div>
             <p id="favEmpty" class="text-[12px] text-muted italic py-2 hidden">
                 ⭐ マークで気に入ったレシピを保存
             </p>
@@ -1519,7 +1519,7 @@ tailwind.config = {
                 <h2 class="flex-1">レシピカタログ</h2>
                 <span id="catCount" class="text-[10px] text-muted tracking-wider"></span>
             </div>
-            <div id="catList" class="space-y-1 max-h-[1200px] overflow-y-auto scroll-fine"></div>
+            <div id="catList" class="space-y-1 max-h-[400px] lg:max-h-[1200px] overflow-y-auto scroll-fine"></div>
         </section>
     </aside>
 
@@ -4744,7 +4744,7 @@ const IMG_QUERY = {
 // ─── Photo cache (Wikipedia REST + Commons search) ─────────────
 // 65レシピ分のキュレーション写真は Wikipedia / Wikimedia Commons から
 // 取得して localStorage にキャッシュする。完成形写真の質を担保。
-const PHOTO_CACHE_KEY = 'mekuri.photo.cache.v5';
+const PHOTO_CACHE_KEY = 'mekuri.photo.cache.v9';
 let _photoCache = (() => {
     try { return JSON.parse(localStorage.getItem(PHOTO_CACHE_KEY) || '{}') || {}; }
     catch { return {}; }
@@ -4998,6 +4998,251 @@ const RECIPE_PHOTO_OVERRIDE = {
     r221: 'https://upload.wikimedia.org/wikipedia/commons/8/89/Ishikari_nabe_by_Adonis_Chen_in_Hokkaido.jpg',
     r225: 'https://upload.wikimedia.org/wikipedia/commons/4/44/Dolsot-bibimbap.jpg',
     r226: 'https://upload.wikimedia.org/wikipedia/commons/9/94/Salad_platter.jpg',
+
+    // === auto-curated batch ===
+    r227: 'https://upload.wikimedia.org/wikipedia/commons/4/43/Ceviche.png',
+    r228: 'https://upload.wikimedia.org/wikipedia/commons/4/46/Tuna_fish_sandwiches_for_the_National_School_Lunch_Program_%281%29.jpg',
+    r229: 'https://upload.wikimedia.org/wikipedia/commons/8/80/Villtakjas_2008.jpg',
+    r230: 'https://upload.wikimedia.org/wikipedia/commons/2/23/Different_kinds_of_White_Radish.png',
+    r231: 'https://upload.wikimedia.org/wikipedia/commons/1/15/Prosciutto_di_Parma%2C_ham_producing.jpg',
+    r232: 'https://upload.wikimedia.org/wikipedia/commons/9/94/Salad_platter.jpg',
+    r233: 'https://upload.wikimedia.org/wikipedia/commons/3/39/Salmo_salar.jpg',
+    r234: 'https://upload.wikimedia.org/wikipedia/commons/7/77/Hourensougomaae001.jpg',
+    r235: 'https://upload.wikimedia.org/wikipedia/commons/e/e7/Edamame_by_Zesmerelda_in_Chicago.jpg',
+    r236: 'https://upload.wikimedia.org/wikipedia/commons/7/77/Spinach_Ohitashi.jpg',
+    r238: 'https://upload.wikimedia.org/wikipedia/commons/9/95/Hong_Kong_Okra_Aug_25_2012.JPG',
+    r239: 'https://upload.wikimedia.org/wikipedia/commons/0/0d/Celery_1.jpg',
+    r240: 'https://upload.wikimedia.org/wikipedia/commons/9/95/Napa_cabbages.png',
+    r241: 'https://upload.wikimedia.org/wikipedia/commons/6/6f/Cabbage_and_cross_section_on_white.jpg',
+    r242: 'https://upload.wikimedia.org/wikipedia/commons/2/28/KOCIS_Korea_President_Park_Arirang_Concert_07_%2810552593495%29.jpg',
+    r243: 'https://upload.wikimedia.org/wikipedia/commons/7/76/Ninjin_Shirishiri.JPG',
+    r247: 'https://upload.wikimedia.org/wikipedia/commons/0/03/Japanese_onishime_2009.JPG',
+    r248: 'https://upload.wikimedia.org/wikipedia/commons/9/94/Salad_platter.jpg',
+    r250: 'https://upload.wikimedia.org/wikipedia/commons/2/2f/Chou-fleur_02.jpg',
+    r254: 'https://upload.wikimedia.org/wikipedia/commons/5/5a/Wok_Cooking.jpg',
+    r255: 'https://upload.wikimedia.org/wikipedia/commons/3/38/Dioscorea_Japonica_%28Yamaimo%29_3.JPG',
+    r257: 'https://upload.wikimedia.org/wikipedia/commons/9/9b/Suimono_with_crab_and_tofu_by_Mullenkedheim_in_Tonami%2C_Toyama.jpg',
+    r260: 'https://upload.wikimedia.org/wikipedia/commons/f/f8/Various_kimchi.jpg',
+    r261: 'https://upload.wikimedia.org/wikipedia/commons/0/02/Sundubu-jjigae.jpg',
+    r262: 'https://upload.wikimedia.org/wikipedia/commons/1/1a/Tan_tan.jpg',
+    r263: 'https://upload.wikimedia.org/wikipedia/commons/e/e8/Miso_Soup_001.jpg',
+    r264: 'https://upload.wikimedia.org/wikipedia/commons/e/e8/Miso_Soup_001.jpg',
+    r265: 'https://upload.wikimedia.org/wikipedia/commons/f/fc/004-soymilk.jpg',
+    r268: 'https://upload.wikimedia.org/wikipedia/commons/9/94/Salad_platter.jpg',
+    r269: 'https://upload.wikimedia.org/wikipedia/commons/4/4f/Kama_tama_udon_and_beer_by_nyaa_birdies_perch.jpg',
+    r270: 'https://upload.wikimedia.org/wikipedia/commons/5/5e/Kizami-bukkake-furuichi.jpg',
+    r271: 'https://upload.wikimedia.org/wikipedia/commons/8/89/%E5%8F%B0%E6%B9%BE%E3%81%BE%E3%81%9C%E3%81%9D%E3%81%B0.jpg',
+    r272: 'https://upload.wikimedia.org/wikipedia/commons/5/58/Chinese_rice_congee.jpg',
+    r273: 'https://upload.wikimedia.org/wikipedia/en/b/bf/AdultSonGohan.jpg',
+    r274: 'https://upload.wikimedia.org/wikipedia/commons/0/0a/20201102.Hengnan.Hybrid_rice_Sanyou-1.6.jpg',
+    r275: 'https://upload.wikimedia.org/wikipedia/commons/0/0a/20201102.Hengnan.Hybrid_rice_Sanyou-1.6.jpg',
+    r276: 'https://upload.wikimedia.org/wikipedia/commons/a/ae/Plateau_van_zeevruchten.jpg',
+    r277: 'https://upload.wikimedia.org/wikipedia/commons/f/f7/Alaska_pollack_liver_roe_milt.jpg',
+    r279: 'https://upload.wikimedia.org/wikipedia/commons/3/37/Spinacia_oleracea_Spinazie_bloeiend.jpg',
+    r281: 'https://upload.wikimedia.org/wikipedia/commons/c/cd/Penne_Arrabbiata.jpg',
+    r282: 'https://upload.wikimedia.org/wikipedia/commons/3/39/Salmo_salar.jpg',
+    r283: 'https://upload.wikimedia.org/wikipedia/commons/b/b9/Palaemon_serratus_Croazia.jpg',
+    r284: 'https://upload.wikimedia.org/wikipedia/commons/3/3f/%E3%82%A2%E3%82%B8%E3%81%AE%E5%8D%97%E8%9B%AE%E6%BC%AC%E3%81%91.jpg',
+    r285: 'https://upload.wikimedia.org/wikipedia/commons/0/03/Japanese_onishime_2009.JPG',
+    r286: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Male_and_female_chicken_sitting_together.jpg',
+    r287: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Male_and_female_chicken_sitting_together.jpg',
+    r288: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Male_and_female_chicken_sitting_together.jpg',
+    r289: 'https://upload.wikimedia.org/wikipedia/commons/b/b3/Yangnyeom-chikin_bhcChicken_1.jpg',
+    r290: 'https://upload.wikimedia.org/wikipedia/commons/5/53/Tandoori_chicken_laccha_piyaz1_%2836886283595%29.jpg',
+    r291: 'https://upload.wikimedia.org/wikipedia/commons/c/cc/Goya_Champuru_at_Yumenoya.jpg',
+    r292: 'https://upload.wikimedia.org/wikipedia/commons/c/ce/Bulgogi_2.jpg',
+    r293: 'https://upload.wikimedia.org/wikipedia/commons/4/42/%E3%82%B9%E3%83%BC%E3%83%97%E3%82%AB%E3%83%AC%E3%83%BC_Soup_Curry.jpg',
+    r294: 'https://upload.wikimedia.org/wikipedia/commons/0/03/Japanese_onishime_2009.JPG',
+    r295: 'https://upload.wikimedia.org/wikipedia/commons/6/6f/Taj_Mahal_-_Lamb_Curry_Madras.jpg',
+    r296: 'https://upload.wikimedia.org/wikipedia/commons/a/a3/Tendon_-_add_-_high_mag.jpg',
+    r297: 'https://upload.wikimedia.org/wikipedia/commons/7/76/Roast_Pig_1.JPG',
+    r298: 'https://upload.wikimedia.org/wikipedia/commons/4/49/Schweinebauch-2.jpg',
+    r299: 'https://upload.wikimedia.org/wikipedia/commons/4/49/Schweinebauch-2.jpg',
+    r300: 'https://upload.wikimedia.org/wikipedia/commons/d/d9/Max%27s_Roasted_Chicken_-_Evan_Swigart.jpg',
+    r301: 'https://upload.wikimedia.org/wikipedia/commons/0/0d/Sole_meuniere_%284689490702%29.jpg',
+    r302: 'https://upload.wikimedia.org/wikipedia/commons/9/92/Trachurus_declivis.jpg',
+    r303: 'https://upload.wikimedia.org/wikipedia/commons/b/b1/Sardines_-_%E9%B0%AF%28%E3%81%84%E3%82%8F%E3%81%97%29.jpg',
+    r304: 'https://upload.wikimedia.org/wikipedia/commons/7/7c/Rock_salt_%28halitite%29_%28Billianwala_Salt_Member%2C_Salt_Range_Formation%2C_Ediacaran_to_Lower_Cambrian%3B_Khewra_Salt_Mine%2C_Salt_Range%2C_Pakistan%29_14.jpg',
+    r305: 'https://upload.wikimedia.org/wikipedia/commons/0/03/Japanese_onishime_2009.JPG',
+
+    // === auto-curated batch ===
+    r307: 'https://upload.wikimedia.org/wikipedia/commons/7/71/Ebichiri.jpg',
+    r308: 'https://upload.wikimedia.org/wikipedia/commons/4/43/%E3%82%A8%E3%83%93%E3%83%9E%E3%83%A8.jpg',
+    r309: 'https://upload.wikimedia.org/wikipedia/commons/0/03/Japanese_onishime_2009.JPG',
+    r310: 'https://upload.wikimedia.org/wikipedia/commons/0/09/Argopecten_irradians.jpg',
+    r311: 'https://upload.wikimedia.org/wikipedia/commons/e/e6/Fried_fish_001.jpg',
+    r312: 'https://upload.wikimedia.org/wikipedia/commons/8/8c/Chicken_nanban_jetalone_in_Tsukishima%2C_Tokyo.jpg',
+    r313: 'https://upload.wikimedia.org/wikipedia/commons/9/90/Chicken_Cutlet_001_%28cropped%29.jpg',
+    r314: 'https://upload.wikimedia.org/wikipedia/commons/0/0b/RedDot_Burger.jpg',
+    r315: 'https://upload.wikimedia.org/wikipedia/commons/e/e6/Lamb-stew.jpg',
+    r316: 'https://upload.wikimedia.org/wikipedia/commons/1/16/Menchi_%28minced_pork%29_katsu.jpg',
+    r317: 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Wirsingkohlrouladen-01.jpg',
+    r318: 'https://upload.wikimedia.org/wikipedia/commons/b/b4/Loco_moco_001.jpg',
+    r319: 'https://upload.wikimedia.org/wikipedia/commons/6/60/Standing-rib-roast.jpg',
+    r320: 'https://upload.wikimedia.org/wikipedia/commons/6/60/Standing-rib-roast.jpg',
+    r321: 'https://upload.wikimedia.org/wikipedia/commons/4/49/Schweinebauch-2.jpg',
+    r323: 'https://upload.wikimedia.org/wikipedia/commons/7/76/Solanum_melongena_24_08_2012_%281%29.JPG',
+    r324: 'https://upload.wikimedia.org/wikipedia/commons/4/49/Schweinebauch-2.jpg',
+    r325: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Male_and_female_chicken_sitting_together.jpg',
+    r326: 'https://upload.wikimedia.org/wikipedia/commons/4/49/Schweinebauch-2.jpg',
+    r328: 'https://upload.wikimedia.org/wikipedia/commons/4/49/Schweinebauch-2.jpg',
+    r329: 'https://upload.wikimedia.org/wikipedia/commons/b/b2/Whitebait_Rice_Bowl_at_Enoshima.jpg',
+    r330: 'https://upload.wikimedia.org/wikipedia/commons/2/21/Tuna_assortment.png',
+    r331: 'https://upload.wikimedia.org/wikipedia/commons/b/b7/Yakiniku_002.jpg',
+    r332: 'https://upload.wikimedia.org/wikipedia/commons/4/4b/Cooking_yakitori.jpg',
+    r333: 'https://upload.wikimedia.org/wikipedia/commons/7/76/Roast_Pig_1.JPG',
+    r334: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Male_and_female_chicken_sitting_together.jpg',
+    r336: 'https://upload.wikimedia.org/wikipedia/commons/5/5f/Swiss_fondue_2.jpg',
+    r337: 'https://upload.wikimedia.org/wikipedia/commons/b/bd/Acqua_pazza.jpg',
+    r338: 'https://upload.wikimedia.org/wikipedia/commons/a/ae/Plateau_van_zeevruchten.jpg',
+    r339: 'https://upload.wikimedia.org/wikipedia/commons/6/60/Standing-rib-roast.jpg',
+    r340: 'https://upload.wikimedia.org/wikipedia/commons/f/f7/Alaska_pollack_liver_roe_milt.jpg',
+    r341: 'https://upload.wikimedia.org/wikipedia/commons/3/39/Allium_sativum_Woodwill_1793.jpg',
+    r344: 'https://upload.wikimedia.org/wikipedia/commons/5/58/Naengmyeon_%28cold_noodles%29.jpg',
+    r345: 'https://upload.wikimedia.org/wikipedia/commons/6/6b/Organic_couscous-01.jpg',
+    r346: 'https://upload.wikimedia.org/wikipedia/commons/9/92/CSA-Striped-Zucchini.jpg',
+    r347: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Parts_of_a_Bell.svg/960px-Parts_of_a_Bell.svg.png',
+    r349: 'https://upload.wikimedia.org/wikipedia/commons/0/04/Flammulina_velutipes_%28Enokitake%2C_winter_mushroom%29.jpg',
+    r350: 'https://upload.wikimedia.org/wikipedia/commons/a/ab/Patates.jpg',
+    r351: 'https://upload.wikimedia.org/wikipedia/commons/3/33/Potato_croquettes_001.jpg',
+    r352: 'https://upload.wikimedia.org/wikipedia/commons/d/df/Cuisine_of_China_0086.JPG',
+    r353: 'https://upload.wikimedia.org/wikipedia/commons/0/03/Summer_roll.jpg',
+    r354: 'https://upload.wikimedia.org/wikipedia/commons/6/67/%E3%82%B9%E3%82%A4%E3%83%BC%E3%83%88%E3%83%9D%E3%83%86%E3%83%88.jpg',
+    r355: 'https://upload.wikimedia.org/wikipedia/commons/5/5c/FrenchMarketPumpkinsB.jpg',
+    r356: 'https://upload.wikimedia.org/wikipedia/commons/8/8e/Og%C3%B3rek_ma%C5%82osolny.jpg',
+    r357: 'https://upload.wikimedia.org/wikipedia/commons/6/64/Shiitakegrowing.jpg',
+    r358: 'https://upload.wikimedia.org/wikipedia/commons/a/ab/Patates.jpg',
+    r360: 'https://upload.wikimedia.org/wikipedia/commons/1/16/Kkwari-gochu.jpg',
+    r361: 'https://upload.wikimedia.org/wikipedia/commons/7/72/Molokheya_Egypt%2C_2012.JPG',
+    r362: 'https://upload.wikimedia.org/wikipedia/commons/9/95/Hong_Kong_Okra_Aug_25_2012.JPG',
+    r363: 'https://upload.wikimedia.org/wikipedia/commons/4/4b/Baby_eggplant_tsukemono_by_wilbanks_in_Nishiki-ichiba%2C_Kyoto.jpg',
+    r364: 'https://upload.wikimedia.org/wikipedia/commons/4/4b/Baby_eggplant_tsukemono_by_wilbanks_in_Nishiki-ichiba%2C_Kyoto.jpg',
+    r365: 'https://upload.wikimedia.org/wikipedia/commons/2/23/Different_kinds_of_White_Radish.png',
+    r366: 'https://upload.wikimedia.org/wikipedia/commons/2/23/Different_kinds_of_White_Radish.png',
+    r367: 'https://upload.wikimedia.org/wikipedia/commons/8/82/Soybean.USDA.jpg',
+    r368: 'https://upload.wikimedia.org/wikipedia/commons/a/a2/Tatsutaage.jpg',
+    r369: 'https://upload.wikimedia.org/wikipedia/commons/3/3b/Dioscorea_polystachya_%28batatas%29.jpg',
+    r370: 'https://upload.wikimedia.org/wikipedia/commons/3/37/Spinacia_oleracea_Spinazie_bloeiend.jpg',
+    r371: 'https://upload.wikimedia.org/wikipedia/commons/7/77/Spinach_Ohitashi.jpg',
+    r373: 'https://upload.wikimedia.org/wikipedia/commons/3/34/Korean.food-Namul-02.jpg',
+    r374: 'https://upload.wikimedia.org/wikipedia/commons/7/76/Ninjin_Shirishiri.JPG',
+    r375: 'https://upload.wikimedia.org/wikipedia/commons/3/3f/%E3%82%A2%E3%82%B8%E3%81%AE%E5%8D%97%E8%9B%AE%E6%BC%AC%E3%81%91.jpg',
+    r376: 'https://upload.wikimedia.org/wikipedia/commons/2/28/KOCIS_Korea_President_Park_Arirang_Concert_07_%2810552593495%29.jpg',
+    r377: 'https://upload.wikimedia.org/wikipedia/commons/e/ed/Sacred_lotus_Nelumbo_nucifera.jpg',
+    r378: 'https://upload.wikimedia.org/wikipedia/commons/d/d3/%E3%83%8A%E3%82%B9%E3%81%AE%E7%85%AE%E3%81%B3%E3%81%9F%E3%81%97.jpg',
+    r379: 'https://upload.wikimedia.org/wikipedia/commons/9/94/Salad_platter.jpg',
+    r380: 'https://upload.wikimedia.org/wikipedia/commons/6/65/Sparrige_Sch%C3%BCppling_%28Pholiota_squarrosa%29.jpg',
+    r383: 'https://upload.wikimedia.org/wikipedia/commons/a/a2/Vegetable-Carrot-Bundle-wStalks.jpg',
+    r384: 'https://upload.wikimedia.org/wikipedia/commons/c/c3/Eguilles_20110828_14.jpg',
+    r385: 'https://upload.wikimedia.org/wikipedia/commons/9/92/Boilingkettle.jpg',
+    r386: 'https://upload.wikimedia.org/wikipedia/commons/8/86/Plate_french_onion_soup.jpg',
+
+    // === auto-curated batch ===
+    r387: 'https://upload.wikimedia.org/wikipedia/commons/e/e8/Miso_Soup_001.jpg',
+    r388: 'https://upload.wikimedia.org/wikipedia/commons/4/40/HK_SYP_%E8%A5%BF%E7%87%9F%E7%9B%A4_Sai_Ying_Pun_Kwan_Yick_Building_%E5%90%8D%E6%98%9F%E6%B5%B7%E9%AE%AE%E9%85%92%E5%AE%B6_Star_Seafood_Restaurant_food_%E5%90%9E%E9%BA%B5_Wonton_dim_sum_October_2020_SS2_01.jpg',
+    r389: 'https://upload.wikimedia.org/wikipedia/commons/3/39/Pork_Steamed_Wontons.jpg',
+    r390: 'https://upload.wikimedia.org/wikipedia/commons/d/db/Cellophane_noodles_%E6%98%A5%E9%9B%A8_%E7%B2%89%E7%B5%B2%2CA090806.JPG',
+    r391: 'https://upload.wikimedia.org/wikipedia/commons/4/4b/Corn_soup.jpg',
+    r392: 'https://upload.wikimedia.org/wikipedia/commons/a/a5/Vichyssoise.jpg',
+    r393: 'https://upload.wikimedia.org/wikipedia/commons/9/9e/CSIRO_ScienceImage_952_Undaria_pinnatifida_Japanese_kelp.jpg',
+    r394: 'https://upload.wikimedia.org/wikipedia/commons/a/a5/Glass_of_Milk_%2833657535532%29.jpg',
+    r396: 'https://upload.wikimedia.org/wikipedia/commons/a/ab/Primary_and_secondary_cotton_roots.jpg',
+    r397: 'https://upload.wikimedia.org/wikipedia/commons/3/3a/Ping_SJ_hot_%26_sour_soup.JPG',
+    r398: 'https://upload.wikimedia.org/wikipedia/commons/3/32/Minestrone_soup.jpg',
+    r399: 'https://upload.wikimedia.org/wikipedia/commons/d/da/CSA-Red-Spring-Onions.jpg',
+    r400: 'https://upload.wikimedia.org/wikipedia/commons/0/02/Japanese_zoni_and_osechi.jpg',
+    r401: 'https://upload.wikimedia.org/wikipedia/commons/2/2c/Kebab.jpg',
+    r402: 'https://upload.wikimedia.org/wikipedia/commons/8/85/Bagel_with_sesame_3.jpg',
+    r406: 'https://upload.wikimedia.org/wikipedia/commons/5/56/Vegetable_gimbap.jpg',
+    r407: 'https://upload.wikimedia.org/wikipedia/commons/4/45/Onigiri_002.jpg',
+    r408: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Male_and_female_chicken_sitting_together.jpg',
+    r409: 'https://upload.wikimedia.org/wikipedia/commons/8/89/Tomato_je.jpg',
+    r410: 'https://upload.wikimedia.org/wikipedia/commons/c/ca/Gili_Meno_Island%2C_Nasi_goreng%2C_Fried_rice_with_juice%2C_Indonesia.jpg',
+    r411: 'https://upload.wikimedia.org/wikipedia/commons/0/0a/20201102.Hengnan.Hybrid_rice_Sanyou-1.6.jpg',
+    r412: 'https://upload.wikimedia.org/wikipedia/commons/0/0c/B%C3%A1nh_m%C3%AC_th%E1%BB%8Bt_n%C6%B0%E1%BB%9Bng.png',
+    r413: 'https://upload.wikimedia.org/wikipedia/commons/6/6f/Taj_Mahal_-_Lamb_Curry_Madras.jpg',
+    r414: 'https://upload.wikimedia.org/wikipedia/commons/f/f7/Alaska_pollack_liver_roe_milt.jpg',
+    r415: 'https://upload.wikimedia.org/wikipedia/commons/2/21/Tuna_assortment.png',
+    r416: 'https://upload.wikimedia.org/wikipedia/commons/9/9d/Pepper_steak.jpg',
+
+    // === auto-curated batch ===
+    r417: 'https://upload.wikimedia.org/wikipedia/commons/f/fb/Twice_cooked_pork%2C_Jia_Yan%2C_5_rue_Humblot%2C_Paris_002.jpg',
+    r418: 'https://upload.wikimedia.org/wikipedia/commons/2/27/Happosai%2C_at_Gyoza-no-Ohsho_%282012.08.18%29.jpg',
+    r419: 'https://upload.wikimedia.org/wikipedia/commons/c/c4/Nirareba_itame_of_Gyouza_no_Ohsho.jpg',
+    r420: 'https://upload.wikimedia.org/wikipedia/commons/4/49/Schweinebauch-2.jpg',
+    r421: 'https://upload.wikimedia.org/wikipedia/commons/f/fc/Tutankhamun_jackal_%28blacked%29.png',
+    r422: 'https://upload.wikimedia.org/wikipedia/commons/8/85/Veal_piccata.jpg',
+    r423: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Male_and_female_chicken_sitting_together.jpg',
+    r424: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Male_and_female_chicken_sitting_together.jpg',
+    r426: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Male_and_female_chicken_sitting_together.jpg',
+    r427: 'https://upload.wikimedia.org/wikipedia/commons/6/60/Standing-rib-roast.jpg',
+    r428: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Male_and_female_chicken_sitting_together.jpg',
+    r429: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Male_and_female_chicken_sitting_together.jpg',
+    r430: 'https://upload.wikimedia.org/wikipedia/commons/1/18/Koeh-146-no_text.jpg',
+    r431: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Male_and_female_chicken_sitting_together.jpg',
+    r432: 'https://upload.wikimedia.org/wikipedia/commons/3/3b/Beef_curry_rice_003.jpg',
+    r433: 'https://upload.wikimedia.org/wikipedia/commons/a/a0/Sausage_making-H-1.jpg',
+    r434: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Male_and_female_chicken_sitting_together.jpg',
+    r435: 'https://upload.wikimedia.org/wikipedia/commons/f/f3/Agedashi_tofu%2C_fried_tofu_with_broth.jpg',
+    r436: 'https://upload.wikimedia.org/wikipedia/commons/4/49/Schweinebauch-2.jpg',
+    r437: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Male_and_female_chicken_sitting_together.jpg',
+    r438: 'https://upload.wikimedia.org/wikipedia/commons/2/27/Garden_of_herbs.jpg',
+    r439: 'https://upload.wikimedia.org/wikipedia/commons/2/27/Garden_of_herbs.jpg',
+    r440: 'https://upload.wikimedia.org/wikipedia/commons/2/2e/Salmo_trutta.jpg',
+    r441: 'https://upload.wikimedia.org/wikipedia/commons/1/18/Gesier.jpg',
+    r442: 'https://upload.wikimedia.org/wikipedia/commons/b/b9/Carpaccio.jpg',
+    r443: 'https://upload.wikimedia.org/wikipedia/commons/c/c6/KatsuoTataki.jpg',
+    r444: 'https://upload.wikimedia.org/wikipedia/commons/9/92/Trachurus_declivis.jpg',
+    r446: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Male_and_female_chicken_sitting_together.jpg',
+    r447: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Male_and_female_chicken_sitting_together.jpg',
+    r448: 'https://upload.wikimedia.org/wikipedia/commons/4/49/Schweinebauch-2.jpg',
+    r449: 'https://upload.wikimedia.org/wikipedia/commons/4/43/Strawberry_shortcake.jpg',
+    r450: 'https://upload.wikimedia.org/wikipedia/commons/c/cc/Runny_hunny.jpg',
+    r451: 'https://upload.wikimedia.org/wikipedia/commons/2/21/Tuna_assortment.png',
+    r452: 'https://upload.wikimedia.org/wikipedia/commons/3/39/Salmo_salar.jpg',
+    r453: 'https://upload.wikimedia.org/wikipedia/commons/8/87/Ribeye-MCB-MaggieO.jpg',
+    r454: 'https://upload.wikimedia.org/wikipedia/commons/8/81/Butadon_of_Pancho.jpg',
+    r455: 'https://upload.wikimedia.org/wikipedia/commons/6/64/Negitoro_gunkanmaki_of_Moriya_Sakanaya_Uohei.jpg',
+    r456: 'https://upload.wikimedia.org/wikipedia/commons/1/16/Pot_of_Chili.jpg',
+    r457: 'https://upload.wikimedia.org/wikipedia/commons/a/ae/FoodMeat.jpg',
+    r458: 'https://upload.wikimedia.org/wikipedia/commons/6/60/Burrito.JPG',
+    r460: 'https://upload.wikimedia.org/wikipedia/commons/a/a8/Cheese_platter.jpg',
+    r461: 'https://upload.wikimedia.org/wikipedia/commons/2/29/Quiche.jpg',
+    r462: 'https://upload.wikimedia.org/wikipedia/commons/e/e5/Thai_green_chicken_curry_and_roti.jpg',
+    r463: 'https://upload.wikimedia.org/wikipedia/commons/2/29/Kaeng_phet_mu.jpg',
+    r464: 'https://upload.wikimedia.org/wikipedia/commons/b/b5/Kaeng_matsaman_kai.JPG',
+    r465: 'https://upload.wikimedia.org/wikipedia/commons/e/e9/Focaccia.png',
+    r466: 'https://upload.wikimedia.org/wikipedia/commons/c/c4/Tamago-dofu.jpg',
+    r467: 'https://upload.wikimedia.org/wikipedia/commons/0/03/Japanese_onishime_2009.JPG',
+    r468: 'https://upload.wikimedia.org/wikipedia/commons/0/03/Japanese_onishime_2009.JPG',
+    r469: 'https://upload.wikimedia.org/wikipedia/commons/9/94/Salad_platter.jpg',
+    r470: 'https://upload.wikimedia.org/wikipedia/commons/9/9b/Capsicum_-Chili_-_Peperoncino_-_Il_Viagra_Calabrese_-_Calabria_-_Italy_-_July_17th_2013_-_02.jpg',
+    r471: 'https://upload.wikimedia.org/wikipedia/commons/2/2f/Chou-fleur_02.jpg',
+    r473: 'https://upload.wikimedia.org/wikipedia/commons/9/94/Salad_platter.jpg',
+    r474: 'https://upload.wikimedia.org/wikipedia/commons/3/34/Korean.food-Namul-02.jpg',
+    r475: 'https://upload.wikimedia.org/wikipedia/commons/2/23/Different_kinds_of_White_Radish.png',
+    r476: 'https://upload.wikimedia.org/wikipedia/commons/3/34/Korean.food-Namul-02.jpg',
+    r477: 'https://upload.wikimedia.org/wikipedia/commons/6/6f/Cabbage_and_cross_section_on_white.jpg',
+    r478: 'https://upload.wikimedia.org/wikipedia/commons/d/d3/%C5%A0v%C3%A9dsk%C3%BD_kol%C3%A1%C4%8D_naruby_904_%28cropped%29.JPG',
+    r480: 'https://upload.wikimedia.org/wikipedia/commons/a/ae/Grillen_-_BBQ_-_Barbeque_-_Fleisch_auf_dem_Grill.jpg',
+    r481: 'https://upload.wikimedia.org/wikipedia/commons/6/64/Guacamole_IMGP1271.jpg',
+    r482: 'https://upload.wikimedia.org/wikipedia/commons/2/23/Hiyayakko_with_bonito_flakes_and_welsh_onion_2.jpg',
+    r483: 'https://upload.wikimedia.org/wikipedia/commons/6/65/Sparrige_Sch%C3%BCppling_%28Pholiota_squarrosa%29.jpg',
+    r484: 'https://upload.wikimedia.org/wikipedia/commons/c/c3/Eguilles_20110828_14.jpg',
+    r485: 'https://upload.wikimedia.org/wikipedia/commons/7/77/Hourensougomaae001.jpg',
+    r486: 'https://upload.wikimedia.org/wikipedia/commons/6/64/Shiitakegrowing.jpg',
+    r487: 'https://upload.wikimedia.org/wikipedia/commons/d/d3/%E3%83%8A%E3%82%B9%E3%81%AE%E7%85%AE%E3%81%B3%E3%81%9F%E3%81%97.jpg',
+    r488: 'https://upload.wikimedia.org/wikipedia/commons/0/07/Kabocha.jpg',
+    r489: 'https://upload.wikimedia.org/wikipedia/commons/7/76/Roast_Pig_1.JPG',
+    r492: 'https://upload.wikimedia.org/wikipedia/commons/0/09/Kiritanpo.jpg',
+    r493: 'https://upload.wikimedia.org/wikipedia/commons/e/ec/Shoyu_ramen%2C_at_Kasukabe_Station_%282014.05.05%29_1.jpg',
+    r494: 'https://upload.wikimedia.org/wikipedia/commons/9/95/Tonkotsu_ramen.JPG',
+    r495: 'https://upload.wikimedia.org/wikipedia/commons/a/a7/Borscht_served.jpg',
+    r496: 'https://upload.wikimedia.org/wikipedia/commons/e/e3/Zea_mays_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-283.jpg',
+    r497: 'https://upload.wikimedia.org/wikipedia/commons/5/5c/FrenchMarketPumpkinsB.jpg',
+    r498: 'https://upload.wikimedia.org/wikipedia/commons/1/18/Koeh-146-no_text.jpg',
+    r499: 'https://upload.wikimedia.org/wikipedia/commons/f/ff/Asparagus_soup_%28spargelsuppe%29.jpg',
+    r500: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Male_and_female_chicken_sitting_together.jpg',
 
 };
 
@@ -5307,13 +5552,66 @@ function youngestKey() {
     }
     return null;
 }
-// 幼児・園児には大人っぽすぎる料理を除外するためのタグ・名前パターン
-const ADULT_ONLY_TAGS = ['フレンチ','イタリアン','エスニック','タイ','韓国','スパイス','激辛','ピリ辛','酒のつまみ','大人','洋食(複雑)'];
+// ─── 大人専用（複雑・エスニック・お酒系） ────────────────────────
+const ADULT_ONLY_TAGS = ['フレンチ','イタリアン','エスニック','タイ','韓国','スパイス','激辛','ピリ辛','酒のつまみ','大人','洋食(複雑)','酒'];
 const ADULT_ONLY_NAME_PATTERNS = /ブイヤベース|アクアパッツァ|パエリア|ガパオ|ジャンバラヤ|ラタトゥイユ|ガスパチョ|ポトフ|ポルチーニ|アヒージョ|プルコギ|ビビンバ|ピリ辛|担々|麻辣|チゲ|スンドゥブ|ガーリック|アンチョビ|ハーブ|サムギョプサル|タンドリー|カオマンガイ|ナンプラー|チリ|チャプチェ|キムチ|赤ワイン|白ワイン|ラム肉|レバー|もつ|モツ|ホルモン|ナンコツ|軟骨/;
+
+// ─── 幼児（1〜3歳）が食べられないもの ──────────────────────────
+// 食中毒・誤嚥・アレルゲン・消化負担・塩分過多・刺激物 全般
+const TODDLER_UNSAFE_TAGS = [
+    '牡蠣','貝','貝類','甲殻類','エビ','カニ','蟹','タコ','イカ',  // アレルゲン・かみ切れない
+    '生卵','半熟','うに','イクラ','明太子','タラコ',                   // 生もの・食中毒
+    'ナチュラルチーズ',                                               // リステリア
+    '蕎麦','そば','ピーナッツ','ナッツ','アーモンド','カシューナッツ', // 重度アレルゲン
+    'もち','餅',                                                       // 誤嚥
+    '揚げ物','フライ',                                                 // 油分・塩分
+    'カフェイン','コーヒー','紅茶',                                    // カフェイン
+    'はちみつ',                                                        // ボツリヌス（1歳未満）注意
+    'レバー',                                                          // ビタミンA過剰
+    '辛','激辛','ピリ辛',                                              // 香辛料
+];
+const TODDLER_UNSAFE_NAME = /(?:カキ|牡蠣|あさり|アサリ|しじみ|シジミ|ホタテ|帆立|ハマグリ|ボンゴレ|サザエ|アワビ|ウニ|イクラ|明太|タラコ|タコ|たこ|イカ|刺身|たたき|寿司|タルタル|カルパッチョ|生|半熟|温玉|温泉卵|蕎麦|そば|餅|モチ|もち|きなこもち|大福|ぜんざい|ピーナッツ|ナッツ|アーモンド|カシュー|レバー|ホルモン|もつ|モツ|キムチ|チゲ|スンドゥブ|麻辣|担々|ピリ辛|チリ|タンドリー|サムギョプサル|プルコギ|ビビンバ|チャプチェ|フライ|揚げ|唐揚げ|から揚げ|天ぷら|天ぷら|フリッター|コロッケ|メンチ|カツ|ガーリック|ニンニク|アンチョビ|ハーブ|オリーブ|アヒージョ|ガパオ|ナンプラー|赤ワイン|白ワイン|酒蒸し|粕汁|酒粕|ラム肉|ジビエ|鹿肉|猪肉|ローストビーフ|ステーキ|生ハム|サラミ|スパイス|カレー|チゲ|塩辛|ピータン|くさや)/;
+
+// ─── 園児（3〜6歳）が食べられないもの（やや緩和） ─────────────
+// 揚げ物・煮込みは少量OK、生ものとアルコール・強香辛料・誤嚥リスクは継続NG
+const PRESCHOOL_UNSAFE_TAGS = [
+    '生卵','うに','イクラ','明太子','タラコ',                        // 生もの
+    'ナチュラルチーズ',
+    '蕎麦','ピーナッツ','ナッツ',                                     // 重アレルゲン
+    'もち','餅',                                                       // 誤嚥
+    'カフェイン','コーヒー',
+    'レバー',
+    '激辛','ピリ辛','辛',
+];
+const PRESCHOOL_UNSAFE_NAME = /(?:刺身|たたき|寿司|タルタル|カルパッチョ|生|半熟|温玉|温泉卵|蕎麦|餅|モチ|もち|大福|ぜんざい|ピーナッツ|ナッツ|アーモンド|カシュー|レバー|ホルモン|もつ|モツ|キムチ|チゲ|スンドゥブ|麻辣|担々|ピリ辛|チリ|タンドリー|サムギョプサル|プルコギ|ガーリック|アンチョビ|アヒージョ|ガパオ|ナンプラー|赤ワイン|白ワイン|酒蒸し|粕汁|酒粕|ラム肉|ジビエ|生ハム|サラミ|塩辛|ピータン|くさや)/;
+
+// ─── 小学生（6〜12歳）が食べられないもの（生もの・強香辛料） ───
+const SCHOOL_UNSAFE_TAGS = ['生卵','激辛','レバー','酒粕','酒のつまみ'];
+const SCHOOL_UNSAFE_NAME = /(?:タルタル|生ハム|生肉|生牡蠣|レバー|ホルモン|モツ|もつ|激辛|麻辣|スンドゥブ|赤ワイン|白ワイン|酒蒸し|粕汁|サラミ|塩辛|くさや)/;
+
 function isAdultOnly(recipe) {
     const tags = recipe.tags || [];
     if (tags.some(t => ADULT_ONLY_TAGS.includes(t))) return true;
     if (ADULT_ONLY_NAME_PATTERNS.test(recipe.name)) return true;
+    return false;
+}
+function isUnsafeFor(recipe, age) {
+    const tags = recipe.tags || [];
+    if (age === 'toddler') {
+        if (tags.some(t => TODDLER_UNSAFE_TAGS.includes(t))) return true;
+        if (TODDLER_UNSAFE_NAME.test(recipe.name)) return true;
+        return false;
+    }
+    if (age === 'preschool') {
+        if (tags.some(t => PRESCHOOL_UNSAFE_TAGS.includes(t))) return true;
+        if (PRESCHOOL_UNSAFE_NAME.test(recipe.name)) return true;
+        return false;
+    }
+    if (age === 'school') {
+        if (tags.some(t => SCHOOL_UNSAFE_TAGS.includes(t))) return true;
+        if (SCHOOL_UNSAFE_NAME.test(recipe.name)) return true;
+        return false;
+    }
     return false;
 }
 function recipeFits(recipe, ageOverride) {
@@ -5330,13 +5628,15 @@ function recipeFits(recipe, ageOverride) {
             // 0-1歳には通常レシピを推奨しない。別枠（赤ちゃんごはん案内）で対応。
             return false;
         case 'toddler':
-            // 親と同じものは食べられる前提。ただしブイヤベース等の大人料理は除外。
             if (isAdultOnly(recipe)) return false;
-            return !hasSpicy && !hasRaw && !hasWholeFish;
+            if (isUnsafeFor(recipe, 'toddler')) return false;
+            return !hasWholeFish;
         case 'preschool':
             if (isAdultOnly(recipe)) return false;
-            return !hasSpicy && !hasRaw;
+            if (isUnsafeFor(recipe, 'preschool')) return false;
+            return true;
         case 'school':
+            if (isUnsafeFor(recipe, 'school')) return false;
             return !hasRaw || hasTag('子ども');
         case 'teen':
         case 'adult':
@@ -7931,8 +8231,19 @@ function renderFamilyRecommend() {
                     <div class="fam-rec-emoji">${r.emoji}</div>
                     <div class="fam-rec-name">${r.name}</div>
                     <div class="fam-rec-meta">${r.cat} · ${r.time}分</div>
+                    <div class="flex gap-1.5 mt-2">
+                        <button class="flex-1 text-[10.5px] py-1 rounded-md border border-border hover:border-ink hover:bg-hover transition" data-detail>詳細</button>
+                        <button class="flex-1 text-[10.5px] py-1 rounded-md bg-accent text-white hover:bg-ink transition font-bold" data-add>枠選択 →</button>
+                    </div>
                 `;
-                card.addEventListener('click', () => openDetail(r, { mode: 'catalog' }));
+                card.querySelector('[data-detail]').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openDetail(r, { mode: 'catalog' });
+                });
+                card.querySelector('[data-add]').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openSlotPicker(r);
+                });
                 grid.appendChild(card);
             }
         }
